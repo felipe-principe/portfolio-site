@@ -1,0 +1,175 @@
+---
+import { Image, getImage } from 'astro:assets';
+import { getCollection } from 'astro:content';
+import { t, localePath, type Lang } from '../../i18n/ui';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const s = t(lang).showcase;
+const all = (await getCollection('cases')).sort((a, b) => a.data.order - b.data.order);
+const live = all.filter(c => c.data.status === 'publicado');
+const soon = all.filter(c => c.data.status === 'em-producao');
+
+// Slideshow do hover: depois do vídeo, as outras páginas do dashboard (imagens otimizadas, carregadas só no hover).
+const slides = Object.fromEntries(await Promise.all(live.map(async c => [c.id, await Promise.all(
+  c.data.tour.slice(1).map(async st => ({ page: st.page, src: (await getImage({ src: st.image, width: 1400, format: 'webp', quality: 80 })).src, tall: st.image.height / st.image.width > 0.6 })),
+)])));
+---
+<section class="section showcase" id="projetos" aria-labelledby="projetos-title">
+  <div class="section-head">
+    <p class="tag" data-reveal>{s.tag}</p>
+    <h2 class="h2" id="projetos-title" data-reveal>{s.title}</h2>
+    <p class="lede" data-reveal>{s.lede}</p>
+  </div>
+
+  <div class="grid">
+    {live.map(c => (
+      <a class="card" href={localePath(lang, `/projetos/${c.id}`)} data-card data-reveal>
+        <div class="media">
+          {c.data.cover && (
+            <Image src={c.data.cover} alt="" widths={[720, 1200, 1800]} sizes="(max-width: 900px) 100vw, 60vw" class="cover" style={`view-transition-name: cover-${c.id}`} />
+          )}
+          {c.data.video && (
+            <video class="video" muted playsinline preload="none" data-src={c.data.video} data-page={c.data.tour[0]?.page ?? ''} aria-hidden="true"></video>
+          )}
+          {slides[c.id].map(sl => <img class="slide" alt="" data-src={sl.src} data-page={sl.page} data-tall={sl.tall ? '1' : ''} aria-hidden="true" />)}
+          <span class="page-chip" data-chip aria-hidden="true"><i></i><span data-chip-text></span></span>
+          <span class="segs" aria-hidden="true">
+            {c.data.video && <span><b data-seg></b></span>}
+            {slides[c.id].map(() => <span><b data-seg></b></span>)}
+          </span>
+          <span class="fict">{lang === 'pt' ? c.data.dataLabel : 'fictional data'}</span>
+          {c.data.badge && <span class="badge-live">{c.data.badge}</span>}
+        </div>
+        <div class="body">
+          <ul class="chips">{c.data.tools.map(tool => <li class="chip">{tool}</li>)}</ul>
+          <h3 class="h3 title">{c.data.title}</h3>
+          <p class="summary">{c.data.summary}</p>
+          <dl class="facts">
+            {c.data.facts.slice(1, 4).map(f => <div><dt class="tag">{f.label}</dt><dd class="num">{f.value}</dd></div>)}
+          </dl>
+          <span class="go">{s.view} <span class="arrow" aria-hidden="true">→</span></span>
+        </div>
+      </a>
+    ))}
+  </div>
+
+  {soon.map(c => (
+    <p class="soon" data-reveal>
+      <span class="tag">{s.next}</span>
+      <span class="soon-title">{c.data.title}</span>
+      <span class="soon-sum">{c.data.summary}</span>
+      <span class="badge"><i></i>{s.soon}</span>
+    </p>
+  ))}
+</section>
+
+<style>
+  .grid { display: grid; gap: 24px; }
+  .card {
+    position: relative; display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); align-items: stretch;
+    border-radius: 20px; background: var(--surface); overflow: hidden; isolation: isolate;
+    box-shadow: 0 0 0 1px var(--border);
+    transition: box-shadow .3s var(--ease-out), transform .3s var(--ease-out);
+  }
+  .media { position: relative; overflow: hidden; background: #0A0E18; aspect-ratio: 1360 / 720; }
+  .cover, .video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .6s var(--ease-out), opacity .4s ease; }
+  .video { opacity: 0; }
+  .slide { position: absolute; left: 0; top: 0; width: 100%; height: auto; opacity: 0; will-change: transform, opacity; }
+  .page-chip {
+    position: absolute; right: 14px; bottom: 14px; display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: .04em; color: var(--text);
+    padding: 5px 10px; border-radius: 999px; background: rgba(7,9,15,.78); backdrop-filter: blur(8px); border: 1px solid var(--border);
+    opacity: 0; transform: translateY(6px); transition: opacity .25s ease, transform .3s var(--ease-out);
+  }
+  .page-chip i { width: 6px; height: 6px; border-radius: 50%; background: #55E1A7; box-shadow: 0 0 8px #55E1A7; }
+  .segs { position: absolute; left: 14px; right: 14px; top: 12px; display: flex; gap: 4px; opacity: 0; transition: opacity .25s ease; }
+  .segs span { flex: 1; height: 2px; border-radius: 2px; background: rgba(237,241,247,.22); overflow: hidden; }
+  .segs b { display: block; height: 100%; background: var(--text); transform: scaleX(0); transform-origin: left; }
+  .card:global(.is-show) .page-chip { opacity: 1; transform: none; }
+  .card:global(.is-show) .segs { opacity: 1; }
+  .card:global(.is-show) .badge-live { opacity: 0; }
+  .fict { position: absolute; left: 14px; bottom: 14px; font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); padding: 5px 10px; border-radius: 999px; background: rgba(7,9,15,.75); backdrop-filter: blur(8px); border: 1px solid rgba(76,201,240,.3); }
+  .badge-live { transition: opacity .25s ease; position: absolute; right: 14px; top: 14px; font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: #FFD68A; padding: 5px 10px; border-radius: 999px; background: rgba(7,9,15,.75); backdrop-filter: blur(8px); border: 1px solid rgba(255,199,95,.35); }
+  .body { display: flex; flex-direction: column; gap: 16px; padding: clamp(24px, 3vw, 40px); }
+  .title { margin-top: 4px; font-size: clamp(1.6rem, 2.4vw, 2.2rem); }
+  .summary { color: var(--text-2); font-size: 16px; }
+  .facts { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; gap: 12px 28px; margin-top: 4px; }
+  .facts dd { font-weight: 500; font-size: 15px; margin-top: 4px; }
+  .go { margin-top: auto; padding-top: 12px; display: inline-flex; align-items: center; gap: 10px; font-weight: 500; font-size: 15px; color: var(--accent); }
+  .go .arrow { transition: transform .2s var(--ease-out); }
+
+  @media (hover: hover) and (pointer: fine) {
+    /* Borda que acende e leve profundidade e vídeo que toca no hover */
+    .card:hover { box-shadow: 0 0 0 1px rgba(76,201,240,.55), 0 30px 80px -30px rgba(76,201,240,.35); transform: translateY(-4px); }
+    .card:hover .cover { transform: scale(1.03); }
+    .card:hover .go .arrow { transform: translateX(4px); }
+  }
+
+  .soon { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-top: 28px; padding: 18px 22px; border-radius: 14px; border: 1px dashed var(--border); color: var(--text-2); font-size: 15px; }
+  .soon-title { color: var(--text); font-weight: 500; }
+  .badge { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+  .badge i { width: 6px; height: 6px; border-radius: 50%; background: #FFC75F; box-shadow: 0 0 8px #FFC75F; }
+
+  @media (max-width: 900px) {
+    .card { grid-template-columns: 1fr; }
+    .facts { grid-template-columns: repeat(2, auto); }
+    .badge { margin-left: 0; }
+  }
+</style>
+
+<script>
+  // Hover (só com mouse): o vídeo mostra o dashboard em uso e, em seguida, as outras páginas passam
+  // devagar, como um slideshow; páginas longas são percorridas de cima a baixo. No toque, fica a capa.
+  import { gsap } from '../../scripts/motion';
+
+  const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const VIDEO_TIME = 5.5, PAGE_TIME = 2.8, TALL_TIME = 4.2, FADE = 0.6;
+
+  if (fine && !reducedMotion) {
+    document.querySelectorAll<HTMLElement>('[data-card]').forEach(card => {
+      const media = card.querySelector<HTMLElement>('.media')!;
+      const video = card.querySelector<HTMLVideoElement>('video');
+      const imgs = [...card.querySelectorAll<HTMLImageElement>('.slide')];
+      const segs = [...card.querySelectorAll<HTMLElement>('[data-seg]')];
+      const chipText = card.querySelector<HTMLElement>('[data-chip-text]')!;
+      const layers: HTMLElement[] = [...(video ? [video] : []), ...imgs];
+      if (!layers.length) return;
+      let tl: gsap.core.Timeline | null = null;
+      const label = (el: HTMLElement) => () => { chipText.textContent = el.dataset.page ?? ''; };
+
+      function start() {
+        imgs.forEach(img => { if (!img.src) img.src = img.dataset.src!; });
+        if (video && !video.src) video.src = video.dataset.src!;
+        card.classList.add('is-show');
+        tl?.kill();
+        tl = gsap.timeline({ repeat: -1 });
+        let cursor = 0; // cada camada entra enquanto a anterior sai (crossfade, sem piscar a capa)
+        layers.forEach((el, i) => {
+          const isVideo = el === video;
+          const tall = !!el.dataset.tall;
+          const dur = isVideo ? VIDEO_TIME : tall ? TALL_TIME : PAGE_TIME;
+          const at = cursor;
+          cursor += dur;
+          tl!.add(label(el), at);
+          if (isVideo) tl!.add(() => { video!.currentTime = 0; video!.play().catch(() => {}); }, at);
+          tl!.fromTo(el, { opacity: 0, y: 0 }, { opacity: 1, duration: FADE, ease: 'power1.out' }, at);
+          if (tall) tl!.to(el, { y: () => -Math.max(0, el.offsetHeight - media.clientHeight), duration: dur - FADE, ease: 'power1.inOut' }, at + FADE * 0.6);
+          tl!.fromTo(segs[i], { scaleX: 0 }, { scaleX: 1, duration: dur, ease: 'none' }, at);
+          tl!.to(el, { opacity: 0, duration: FADE, ease: 'power1.in' }, at + dur);
+          if (isVideo) tl!.add(() => video!.pause(), at + dur + FADE);
+        });
+        tl.add(() => segs.forEach(sg => gsap.set(sg, { scaleX: 0 })), cursor);
+      }
+      function stop() {
+        tl?.kill(); tl = null;
+        card.classList.remove('is-show');
+        gsap.to(layers, { opacity: 0, duration: 0.3, ease: 'power1.out', onComplete: () => { gsap.set(imgs, { y: 0 }); video?.pause(); } });
+        gsap.set(segs, { scaleX: 0 });
+      }
+      card.addEventListener('pointerenter', start);
+      card.addEventListener('pointerleave', stop);
+    });
+  }
+</script>

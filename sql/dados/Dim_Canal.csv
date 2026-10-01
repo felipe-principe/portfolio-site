@@ -1,0 +1,3 @@
+﻿ID_Canal;Nome_Canal;Tipo_Canal;Meta_SLA_Min;Meta_Nivel_Servico_Seg;Meta_Nivel_Servico_Pct
+CAN1;Chat;Digital;25;30;80
+CAN2;Telefone;Voz;18;45;80

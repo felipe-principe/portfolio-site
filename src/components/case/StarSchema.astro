@@ -1,0 +1,74 @@
+---
+// Diagrama do modelo estrela gerado a partir das relações do frontmatter e das contagens de linhas dos CSVs.
+import data from '../../data/central-atendimento.json';
+
+interface Props { relations: [string, string][]; layout?: { left: string[]; right: string[] }; lang?: 'pt' | 'en' }
+const { relations, layout, lang = 'pt' } = Astro.props;
+const loc = lang === 'pt' ? 'pt-BR' : 'en-US';
+const rows = data.linhas as Record<string, number>;
+
+const facts = [...new Set(relations.map(r => r[0]))];
+const dims = [...new Set(relations.map(r => r[1]))];
+// Dimensões compartilhadas por mais fatos vão à direita; exclusivas do fato principal, à esquerda.
+const shared = (d: string) => relations.filter(r => r[1] === d).length;
+const sorted = [...dims].sort((a, b) => shared(b) - shared(a));
+const right = layout?.right ?? sorted.slice(0, Math.ceil(dims.length / 2));
+const left = layout?.left ?? sorted.slice(Math.ceil(dims.length / 2));
+
+const W = 920, BW = 210, BH = 58, H = 400;
+const col = (list: string[], cx: number) => list.map((name, i) => ({ name, x: cx - BW / 2, y: 30 + (i * (H - 60 - BH)) / Math.max(1, list.length - 1) }));
+const boxes = [...col(facts, W / 2), ...col(left, BW / 2 + 10), ...col(right, W - BW / 2 - 10)];
+const at = (n: string) => boxes.find(b => b.name === n)!;
+const links = relations.map(([f, d]) => {
+  const a = at(f), b = at(d);
+  const toRight = b.x > a.x;
+  const x1 = toRight ? a.x + BW : a.x, y1 = a.y + BH / 2;
+  const x2 = toRight ? b.x : b.x + BW, y2 = b.y + BH / 2;
+  const mx = (x1 + x2) / 2;
+  return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+});
+const label = (n: string) => n.replace(/_/g, ' ');
+---
+<figure class="schema" data-schema aria-label={`${lang === 'pt' ? 'Modelo estrela' : 'Star schema'}: ${facts.join(', ')} ${lang === 'pt' ? 'ligadas a' : 'linked to'} ${dims.join(', ')}.`}>
+  <svg viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
+    {links.map(d => <path class="link" d={d} pathLength="1" data-link />)}
+    {boxes.map(b => (
+      <g class:list={['box', { fact: facts.includes(b.name) }]} data-box>
+        <rect x={b.x} y={b.y} width={BW} height={BH} rx="10" />
+        <text class="name" x={b.x + 16} y={b.y + 24}>{label(b.name)}</text>
+        <text class="rows" x={b.x + 16} y={b.y + 43}>{rows[b.name] ? `${rows[b.name].toLocaleString(loc)} ${lang === 'pt' ? 'linhas' : 'rows'}` : ''}</text>
+      </g>
+    ))}
+  </svg>
+  <figcaption class="legend">
+    <span><i class="lf"></i>{lang === 'pt' ? 'Fato' : 'Fact'}</span>
+    <span><i class="ld"></i>{lang === 'pt' ? 'Dimensão' : 'Dimension'}</span>
+    <span class="tag">{lang === 'pt' ? 'Relações 1:N, filtro em direção única' : '1:N relationships, single-direction filter'}</span>
+  </figcaption>
+</figure>
+
+<style>
+  .schema { padding: clamp(16px, 3vw, 32px); border-radius: 20px; background: var(--surface); box-shadow: 0 0 0 1px var(--border); }
+  svg { width: 100%; height: auto; }
+  .link { fill: none; stroke: rgba(76,201,240,.35); stroke-width: 1.5; stroke-dasharray: 1; stroke-dashoffset: 0; }
+  .box rect { fill: #0A0E18; stroke: var(--border); }
+  .box.fact rect { fill: rgba(76,201,240,.08); stroke: rgba(76,201,240,.6); }
+  .name { font-family: var(--sans); font-size: 15px; font-weight: 600; fill: var(--text); }
+  .rows { font-family: var(--mono); font-size: 12px; fill: var(--text-2); }
+  .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-top: 18px; font-size: 14px; color: var(--text-2); }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .legend i { width: 14px; height: 10px; border-radius: 3px; border: 1px solid var(--border); background: #0A0E18; }
+  .legend .lf { border-color: rgba(76,201,240,.6); background: rgba(76,201,240,.15); }
+</style>
+
+<script>
+  import { gsap, reduced } from '../../scripts/motion';
+  const fig = document.querySelector<HTMLElement>('[data-schema]');
+  if (fig && !reduced) {
+    const boxes = fig.querySelectorAll('[data-box]');
+    const links = fig.querySelectorAll('[data-link]');
+    gsap.timeline({ scrollTrigger: { trigger: fig, start: 'top 75%', once: true } })
+      .fromTo(boxes, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.6, ease: 'expo.out', stagger: 0.05 })
+      .fromTo(links, { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.9, ease: 'power2.inOut', stagger: 0.04 }, 0.3);
+  }
+</script>

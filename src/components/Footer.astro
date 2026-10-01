@@ -1,0 +1,51 @@
+---
+import { t, links, type Lang } from '../i18n/ui';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const s = t(lang).footer;
+const year = new Date().getFullYear();
+---
+<footer class="footer section" id="contato">
+  <div class="cta">
+    <h2 class="h2" data-reveal>{s.title}</h2>
+    <p class="lede" data-reveal>{s.lede}</p>
+    <a class="mail" href={`mailto:${links.email}`} data-reveal>
+      <span class="tag">{s.email}</span>
+      <span class="addr">{links.email}</span>
+      <span class="arrow" aria-hidden="true">→</span>
+    </a>
+  </div>
+  <div class="bottom">
+    <ul class="social">
+      <li><a href={links.linkedin} target="_blank" rel="noopener">LinkedIn ↗</a></li>
+      {links.github && <li><a href={links.github} target="_blank" rel="noopener">GitHub ↗</a></li>}
+      <li><a href={links.cv} target="_blank" rel="noopener">{lang === 'pt' ? 'Currículo' : 'Résumé'} ↗</a></li>
+    </ul>
+    <p class="built"><span class="dot" aria-hidden="true"></span>{s.built}</p>
+    <p class="fine">© {year} Felipe Principe · {s.rights}</p>
+  </div>
+</footer>
+
+<style>
+  .footer { border-top: 1px solid var(--border); overflow: hidden; }
+  .footer::before { content: ''; position: absolute; inset: auto 0 0 0; height: 70%; pointer-events: none; background: radial-gradient(50% 60% at 50% 100%, rgba(42,154,201,.12), transparent 70%); }
+  .cta { position: relative; max-width: 900px; }
+  .cta .lede { margin-top: 18px; }
+  .mail {
+    display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 8px 18px; margin-top: 40px; padding-bottom: 10px;
+    border-bottom: 1px solid var(--border); transition: border-color .2s ease;
+  }
+  .addr { font-weight: 600; letter-spacing: -0.03em; font-size: clamp(1.4rem, 3.4vw, 2.6rem); line-height: 1.1; word-break: break-all; }
+  .mail .arrow { font-size: clamp(1.4rem, 3vw, 2.2rem); color: var(--accent); transition: transform .2s var(--ease-out); }
+  @media (hover: hover) and (pointer: fine) {
+    .mail:hover { border-color: var(--accent); }
+    .mail:hover .arrow { transform: translateX(6px); }
+  }
+  .bottom { position: relative; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px 32px; margin-top: clamp(64px, 8vw, 112px); padding-top: 28px; border-top: 1px solid var(--border); font-size: 14px; color: var(--text-2); }
+  .social { display: flex; gap: 24px; list-style: none; }
+  .social a { color: var(--text); transition: color .2s ease; }
+  .social a:hover { color: var(--accent); }
+  .built { display: inline-flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 12px; padding: 7px 12px; border: 1px solid rgba(76,201,240,.3); border-radius: 999px; color: var(--text); }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+  .fine { width: 100%; font-size: 12px; }
+</style>

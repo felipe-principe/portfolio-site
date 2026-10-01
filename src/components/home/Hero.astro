@@ -1,0 +1,144 @@
+---
+import { t, links, type Lang } from '../../i18n/ui';
+import data from '../../data/central-atendimento.json';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const s = t(lang).hero;
+const loc = lang === 'pt' ? 'pt-BR' : 'en-US';
+const avg = Math.round(data.total / 12);
+const peak = data.volume.indexOf(Math.max(...data.volume));
+const months = lang === 'pt' ? data.meses : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const peakDiff = Math.round((data.volume[peak] / avg - 1) * 100);
+const fmt = (n: number) => n.toLocaleString(loc);
+const pct = (n: number) => n.toLocaleString(loc, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+// Tudo o que o script precisa vai num único atributo: os números vêm do JSON gerado dos CSVs.
+const payload = JSON.stringify({
+  vol: data.volume, sla: data.sla, slaYear: data.slaAno, months, loc,
+  t: { calls: s.calls, vsAvg: s.vsAvg },
+});
+---
+<section class="hero" aria-labelledby="hero-title" data-hero={payload}>
+  <div class="glow" aria-hidden="true"></div>
+  <canvas class="field" aria-hidden="true"></canvas>
+  <div class="grain" aria-hidden="true"></div>
+
+  <div class="copy" data-copy>
+    <p class="eyebrow" data-hero-in style="--d:0"><span class="pulse"></span>{s.eyebrow}</p>
+    <h1 class="h1 title" id="hero-title">{s.title[0]}<em>{s.title[1]}</em></h1>
+    <p class="lede" data-hero-in style="--d:1"><strong>{s.ledeStrong}</strong> {s.lede}</p>
+    <div class="ctas" data-hero-in style="--d:2">
+      <a class="btn btn-primary" href="#case">{s.ctaCase} <span class="arrow">→</span></a>
+      <a class="btn btn-ghost" href={links.cv} target="_blank" rel="noopener">{s.ctaCv}</a>
+    </div>
+    <ul class="chips" data-hero-in style="--d:3" aria-label={lang === 'pt' ? 'Ferramentas' : 'Tools'}>
+      <li class="chip">Power BI</li><li class="chip">DAX</li><li class="chip">SQL</li><li class="chip">Power Query</li>
+      <li class="chip is-accent">Claude Code</li><li class="chip is-accent">n8n</li>
+    </ul>
+  </div>
+
+  <figure class="chart" aria-label={s.chartLabel}>
+    <div class="chart-head" data-hero-in style="--d:2">
+      <div>
+        <p class="tag">{s.chartTag} <span class="hl">{s.fict}</span></p>
+        <p class="counter num" data-count>{fmt(data.total)}</p>
+        <p class="counter-sub">{s.counterSub}</p>
+      </div>
+      <p class="unit"><i></i>{s.unit[0]} <span data-unit>20</span> {s.unit[1]}</p>
+    </div>
+    <div class="plot" data-plot>
+      <div class="avg" data-avg><span>{s.avg} · {fmt(avg)}</span></div>
+      <div class="note" data-note>
+        <div class="card-glass"><b>{months[peak]}/25 · {fmt(data.volume[peak])} {s.calls}</b><br />+{peakDiff}% {s.vsAvg} · SLA <span class="down">{pct(data.sla[peak])}%</span></div>
+        <div class="stem"></div>
+      </div>
+      <div class="tip" data-tip aria-hidden="true"><div class="card-glass" data-tip-body></div></div>
+    </div>
+    <div class="months" data-months aria-hidden="true">
+      {months.map((m, i) => <span class={i === peak ? 'peak' : ''}>{m}</span>)}
+    </div>
+  </figure>
+
+  <div class="cue" data-hero-in style="--d:4" aria-hidden="true">{s.scroll}</div>
+</section>
+
+<style>
+  .hero {
+    position: relative; min-height: 100svh; overflow: hidden; isolation: isolate;
+    display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(24px, 4vw, 72px); align-items: center;
+    padding: 120px var(--inline) 96px;
+  }
+  .glow {
+    position: absolute; inset: -10%; z-index: -2; pointer-events: none;
+    background:
+      radial-gradient(40% 45% at 72% 48%, rgba(42,154,201,.16), transparent 70%),
+      radial-gradient(30% 35% at 88% 30%, rgba(129,104,222,.12), transparent 70%),
+      radial-gradient(35% 40% at 15% 70%, rgba(42,154,201,.06), transparent 70%);
+    animation: breathe 9s ease-in-out infinite alternate;
+  }
+  @keyframes breathe { from { opacity: .75; transform: scale(1); } to { opacity: 1; transform: scale(1.06); } }
+  .grain {
+    position: absolute; inset: 0; z-index: -1; pointer-events: none; opacity: .05; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .field { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+  /* funde o fim da abertura com a seção seguinte (sem "degrau" de cor) */
+  .hero::after { content: ''; position: absolute; inset: auto 0 0 0; height: 120px; z-index: -1; pointer-events: none; background: linear-gradient(to bottom, rgba(7,9,15,0), var(--bg)); }
+  .copy { position: relative; max-width: 620px; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-2); margin-bottom: 28px; }
+  .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 12px var(--accent); animation: pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .35; } }
+  .title em { font-style: normal; color: var(--accent); }
+  :global(html.js) .title { visibility: hidden; }
+  /* Entrada em CSS: começa no primeiro quadro, sem esperar o JavaScript (melhora o carregamento percebido). */
+  [data-hero-in] { animation: hero-in .7s cubic-bezier(0.16, 1, 0.3, 1) both; animation-delay: calc(var(--d, 0) * 70ms + 200ms); }
+  @keyframes hero-in { from { opacity: 0; transform: translateY(24px); } }
+  .lede { margin-top: 28px; }
+  .ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 36px; }
+  .chips { margin-top: 40px; }
+
+  .chart { position: relative; display: flex; flex-direction: column; height: min(62vh, 620px); min-height: 360px; }
+  .chart-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 20px; }
+  .counter { font-weight: 600; letter-spacing: -0.035em; font-size: clamp(2rem, 3.4vw, 3.4rem); line-height: 1; margin-top: 10px; }
+  .counter-sub { font-size: 14px; color: var(--text-2); margin-top: 6px; }
+  .unit { font-family: var(--mono); font-size: 11px; color: var(--text-2); text-align: right; white-space: nowrap; }
+  .unit i { display: inline-block; width: 6px; height: 6px; border-radius: 1px; background: var(--blue); margin-right: 6px; vertical-align: middle; }
+  .plot { position: relative; flex: 1; }
+  .avg { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed rgba(237,241,247,.28); transform-origin: left center; }
+  .avg span { position: absolute; right: 0; bottom: 6px; font-family: var(--mono); font-size: 11px; color: var(--text-2); background: var(--bg); padding: 0 6px; }
+  .note { position: absolute; display: flex; flex-direction: column; align-items: center; pointer-events: none; transition: opacity .2s ease; }
+  .note:global(.is-muted) { opacity: .25 !important; }
+  .note:global(.is-hidden) { opacity: 0 !important; }
+  .stem { width: 1px; height: 22px; background: linear-gradient(to bottom, rgba(76,201,240,.7), rgba(76,201,240,0)); transform-origin: top; }
+  .tip { position: absolute; left: 0; bottom: 0; pointer-events: none; opacity: 0; transition: opacity .15s ease, transform .2s var(--ease-out); }
+  .tip:global(.is-on) { opacity: 1; }
+  .tip .card-glass { border-color: var(--border); box-shadow: 0 16px 40px -16px rgba(0,0,0,.9); }
+  .tip :global(.tm) { color: var(--text); font-weight: 500; }
+  .tip :global(.tk) { color: var(--text-2); }
+  .months { display: grid; grid-template-columns: repeat(12, 1fr); margin-top: 14px; font-family: var(--mono); font-size: 11px; color: var(--text-2); text-align: center; }
+  .months span { transition: color .15s ease; }
+  .months .peak, .months :global(.is-on) { color: var(--accent); }
+
+  .cue { position: absolute; left: 50%; bottom: 28px; transform: translateX(-50%); font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--text-2); display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .cue::after { content: ''; width: 1px; height: 36px; background: linear-gradient(var(--text-2), transparent); animation: cue 2.2s var(--ease-out) infinite; transform-origin: top; }
+  @keyframes cue { 0% { transform: scaleY(0); } 60% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(1); opacity: 0; } }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; padding-top: 108px; padding-bottom: 72px; gap: 48px; align-content: start; }
+    .chart { height: 58svh; min-height: 380px; }
+    .chart-head { margin-bottom: 28px; }
+    .card-glass { font-size: 11px; padding: 8px 12px; }
+    .cue { display: none; }
+  }
+  @media (max-width: 520px) { .unit { display: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    :global(html.js) .title { visibility: visible; }
+  }
+</style>
+
+<script>
+  import { initHero } from '../../scripts/hero-particles';
+  const el = document.querySelector<HTMLElement>('[data-hero]');
+  if (el) document.fonts.ready.then(() => initHero(el));
+</script>

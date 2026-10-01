@@ -1,0 +1,272 @@
+---
+import { Image } from 'astro:assets';
+import { t, localePath, type Lang } from '../../i18n/ui';
+import photo from '../../assets/felipe.jpg';
+
+interface Props { lang: Lang; showMore?: boolean }
+// showMore=false na própria página Sobre, onde o botão levaria à mesma página
+const { lang, showMore = true } = Astro.props;
+const s = t(lang).about;
+
+// Trajetória como gráfico: cada cargo é um degrau acima do anterior.
+const W = 560, H = 280, PX = 18, TOP = 112, BOTTOM = 22;
+const n = s.roles.length;
+const pts = s.roles.map((_, i) => [PX + (i * (W - PX * 2)) / (n - 1), H - BOTTOM - (i * (H - BOTTOM - TOP)) / (n - 1)]);
+const line = pts.map(([x, y], i) => (i === 0 ? `M${x},${y}` : `H${x} V${y}`)).join(' ');
+const area = `${line} V${H} H${pts[0][0]} Z`;
+
+// Fases da carreira (índices dos cargos) desenhadas como faixas de fundo.
+const phaseNames = lang === 'pt' ? ['Operação', 'Liderança e treinamento', 'Dados'] : ['Operations', 'Leadership & training', 'Data'];
+const groups = [[0, 1], [2, 4], [5, 5]];
+const mid = (a: number, b: number) => (pts[a][0] + pts[b][0]) / 2;
+const phases = groups.map(([a, b], i) => {
+  const x0 = a === 0 ? 0 : mid(a - 1, a);
+  const x1 = b === n - 1 ? W : mid(b, b + 1);
+  return { x0, x1, name: phaseNames[i], last: i === groups.length - 1 };
+});
+const roleData = JSON.stringify(s.roles.map(r => `${r.y} · ${r.r}`));
+---
+<section class="section about" aria-labelledby="about-title">
+  <div class="text">
+    <p class="tag" data-reveal>{s.tag}</p>
+    <h2 class="h2" id="about-title" data-reveal>{s.title}</h2>
+    <div class="who" data-reveal>
+      <Image src={photo} alt="Felipe Principe" width={120} height={120} class="photo" />
+      <p class="lede">{s.p1}</p>
+    </div>
+    <p class="lede" data-reveal>{s.p2}</p>
+    {showMore && <a class="btn btn-ghost more" href={localePath(lang, '/sobre')} data-reveal>{s.more} <span class="arrow">→</span></a>}
+  </div>
+
+  <figure class="career" data-career data-roles={roleData} data-reveal aria-label={`${s.career}: ${s.roles.map(r => `${r.y} ${r.r}`).join(', ')}`}>
+    <figcaption class="tag">{s.career}</figcaption>
+    <svg viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
+      <defs>
+        <linearGradient id="cg" x1="0" x2="1"><stop offset="0" stop-color="#2A9AC9" /><stop offset="1" stop-color="#4CC9F0" /></linearGradient>
+        <linearGradient id="ca" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4CC9F0" stop-opacity=".22" /><stop offset="1" stop-color="#4CC9F0" stop-opacity="0" /></linearGradient>
+        <clipPath id="career-clip"><rect x="0" y="0" width={W} height={H} data-clip /></clipPath>
+      </defs>
+
+      {phases.map(p => (
+        <g class:list={['phase', { last: p.last }]} data-phase>
+          <rect x={p.x0} y="30" width={p.x1 - p.x0} height={H - 30} />
+          <line x1={p.x1} x2={p.x1} y1="30" y2={H} />
+          <text x={p.x0 + 10} y="46">{p.name}</text>
+        </g>
+      ))}
+
+      <g clip-path="url(#career-clip)">
+        <path d={area} class="area" />
+      </g>
+      <path d={line} class="line" pathLength="1" data-line />
+      <path d={line} class="comet" pathLength="1" data-comet />
+      <path d={line} class="track" data-track />
+
+      {pts.map(([x, y], i) => (
+        <g class:list={['node', { last: i === n - 1 }]} data-node style={`--x:${x}px;--y:${y}px`}>
+          <circle class="ring" cx={x} cy={y} r="4" data-ring />
+          {i === n - 1 && <circle class="halo" cx={x} cy={y} r="6" />}
+          <circle class="pt" cx={x} cy={y} r={i === n - 1 ? 6 : 4} data-pt />
+          <circle class="hit" cx={x} cy={y} r="18" data-hit={i} />
+        </g>
+      ))}
+
+      <g class="flag" data-flag>
+        <line class="flag-stem" x1="0" x2="0" y1="8" y2="20" />
+        <rect class="flag-box" x="0" y="-18" height="26" rx="8" data-flag-box />
+        <text class="flag-text" x="0" y="0" data-flag-text></text>
+      </g>
+    </svg>
+    <ol class="roles">
+      {s.roles.map((r, i) => (
+        <li class:list={{ last: i === n - 1 }} data-role={i} tabindex="0"><span class="y num">{r.y}</span><span class="r">{r.r}</span></li>
+      ))}
+    </ol>
+  </figure>
+</section>
+
+<style>
+  .about { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(40px, 6vw, 96px); align-items: center; border-top: 1px solid var(--border); }
+  .text .h2 { margin-top: 14px; }
+  .who { display: flex; gap: 20px; align-items: flex-start; margin-top: 28px; }
+  .photo { flex: none; width: 88px; height: 88px; border-radius: 50%; object-fit: cover; box-shadow: 0 0 0 1px var(--border), 0 0 0 5px rgba(76,201,240,.08); }
+  .text > .lede { margin-top: 16px; }
+  .more { margin-top: 32px; }
+  .career { position: relative; padding: 28px; border-radius: 20px; background: var(--surface); box-shadow: 0 0 0 1px var(--border); overflow: hidden; }
+  svg { width: 100%; height: auto; margin-top: 8px; overflow: visible; }
+
+  .phase rect { fill: rgba(255,255,255,.012); }
+  .phase line { stroke: rgba(237,241,247,.07); stroke-dasharray: 3 5; }
+  .phase:last-child line, .phase.last line { display: none; }
+  .phase text { font-family: var(--mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; fill: var(--text-2); opacity: .8; }
+  .phase.last rect { fill: rgba(76,201,240,.06); }
+  .phase.last text { fill: var(--accent); opacity: 1; }
+
+  .area { fill: url(#ca); }
+  .line { fill: none; stroke: url(#cg); stroke-width: 2; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 0; }
+  .track { fill: none; stroke: none; }
+  .comet { fill: none; stroke: #EAF8FF; stroke-width: 2.5; stroke-linecap: round; opacity: 0; filter: drop-shadow(0 0 4px rgba(76,201,240,.9)); }
+
+  .pt { fill: var(--bg); stroke: var(--blue); stroke-width: 1.5; transition: stroke .3s ease, fill .3s ease; }
+  .node:global(.is-on) .pt { stroke: var(--accent); }
+  .node.last .pt { fill: var(--accent); stroke: var(--accent); filter: drop-shadow(0 0 6px rgba(76,201,240,.8)); }
+  .ring { fill: none; stroke: var(--accent); stroke-width: 1.5; opacity: 0; }
+  .halo { fill: none; stroke: var(--accent); stroke-width: 1.5; opacity: 0; transform-box: fill-box; transform-origin: center; }
+  :global(.career.is-live) .halo { animation: halo 2.4s ease-out infinite; }
+  @keyframes halo { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(3.2); opacity: 0; } }
+  .hit { fill: transparent; cursor: pointer; }
+  .node:global(.is-focus) .pt { stroke: #EAF8FF; stroke-width: 2; }
+
+  .flag { opacity: 0; pointer-events: none; }
+  .flag-box { fill: rgba(14,19,32,.92); stroke: rgba(76,201,240,.45); }
+  .flag-text { font-family: var(--mono); font-size: 11px; fill: var(--text); dominant-baseline: middle; transform: translateY(-5px); }
+  .flag-stem { stroke: rgba(76,201,240,.6); }
+
+  .roles { list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 20px; margin-top: 24px; }
+  .roles li { display: flex; flex-direction: column; font-size: 14px; color: var(--text-2); opacity: .45; cursor: default; border-radius: 6px; transition: opacity .3s ease, color .3s ease; }
+  .roles li:global(.is-on) { opacity: 1; }
+  .roles li:global(.is-focus) .r { color: var(--text); }
+  .roles li:focus-visible { outline-offset: 4px; }
+  .roles .y { font-family: var(--mono); font-size: 11px; color: var(--text-2); }
+  .roles .last .r { color: var(--accent); font-weight: 500; }
+  @media (max-width: 900px) { .about { grid-template-columns: 1fr; } }
+  @media (max-width: 520px) {
+    .roles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .career { padding: 20px; }
+    .phase text { font-size: 13px; }
+    .flag-text { font-size: 14px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .roles li { opacity: 1; } }
+</style>
+
+<script>
+  import { gsap, ScrollTrigger, reduced } from '../../scripts/motion';
+
+  const fig = document.querySelector<HTMLElement>('[data-career]');
+  if (fig) {
+    const roles: string[] = JSON.parse(fig.dataset.roles!);
+    const n = roles.length;
+    const track = fig.querySelector<SVGPathElement>('[data-track]')!;
+    const clip = fig.querySelector<SVGRectElement>('[data-clip]')!;
+    const comet = fig.querySelector<SVGPathElement>('[data-comet]')!;
+    const lineEl = fig.querySelector<SVGPathElement>('[data-line]')!;
+    const nodes = [...fig.querySelectorAll<SVGGElement>('[data-node]')];
+    const pts = nodes.map(g => g.querySelector<SVGCircleElement>('[data-pt]')!);
+    const rings = nodes.map(g => g.querySelector<SVGCircleElement>('[data-ring]')!);
+    const items = [...fig.querySelectorAll<HTMLElement>('[data-role]')];
+    const flag = fig.querySelector<SVGGElement>('[data-flag]')!;
+    const flagBox = fig.querySelector<SVGRectElement>('[data-flag-box]')!;
+    const flagText = fig.querySelector<SVGTextElement>('[data-flag-text]')!;
+    const VB_W = 560;
+    const xy = pts.map(p => [+p.getAttribute('cx')!, +p.getAttribute('cy')!]);
+
+    // Fração do comprimento da linha em que cada degrau é alcançado (trechos: horizontal e depois vertical).
+    const total = track.getTotalLength();
+    const frac = [0];
+    let acc = 0;
+    for (let i = 1; i < n; i++) {
+      acc += Math.abs(xy[i][0] - xy[i - 1][0]) + Math.abs(xy[i][1] - xy[i - 1][1]);
+      frac.push(acc / total);
+    }
+
+    // Etiqueta que acompanha a ponta da linha (e depois o cargo em foco).
+    function setFlagText(i: number) {
+      flagText.textContent = roles[i];
+      const w = flagText.getComputedTextLength() + 22;
+      flagBox.setAttribute('width', String(w));
+      flagBox.setAttribute('x', String(-w / 2));
+      flagText.setAttribute('x', String(-w / 2 + 11));
+      flag.dataset.w = String(w);
+    }
+    const flagPos = (x: number, y: number) => {
+      const w = +(flag.dataset.w || 120);
+      const cx = Math.max(w / 2 + 2, Math.min(VB_W - w / 2 - 2, x));
+      return { x: cx, y: y - 30 };
+    };
+    function placeFlag(x: number, y: number, animate: boolean) {
+      const p = flagPos(x, y);
+      if (animate) gsap.to(flag, { x: p.x, y: p.y, duration: 0.35, ease: 'expo.out', overwrite: true });
+      else gsap.set(flag, { x: p.x, y: p.y });
+      // a haste aponta para o ponto mesmo quando a etiqueta encosta na borda
+      flag.querySelector('line')!.setAttribute('x1', String(x - p.x));
+      flag.querySelector('line')!.setAttribute('x2', String(x - p.x));
+    }
+
+    let reached = -1;
+    function reach(i: number, pulse: boolean) {
+      if (i <= reached) return;
+      for (let k = reached + 1; k <= i; k++) {
+        nodes[k].classList.add('is-on');
+        items[k].classList.add('is-on');
+        if (pulse) {
+          gsap.fromTo(pts[k], { attr: { r: 2 } }, { attr: { r: k === n - 1 ? 6 : 4 }, duration: 0.5, ease: 'back.out(3)' });
+          gsap.fromTo(rings[k], { attr: { r: 4 }, opacity: 0.7 }, { attr: { r: 18 }, opacity: 0, duration: 0.8, ease: 'power2.out' });
+        }
+      }
+      reached = i;
+      setFlagText(i);
+    }
+
+    let ready = false;
+    function finish() {
+      ready = true;
+      fig!.classList.add('is-live');
+      gsap.set(clip, { attr: { width: VB_W } });
+      // Brilho que percorre a carreira de tempos em tempos (pausado fora da tela).
+      const cometTl = gsap.timeline({ repeat: -1, repeatDelay: 4.5, delay: 1.2 })
+        .set(comet, { strokeDasharray: '0.07 1.2', strokeDashoffset: 0.07, opacity: 1 })
+        .to(comet, { strokeDashoffset: -1, duration: 2.4, ease: 'power1.inOut' })
+        .set(comet, { opacity: 0 });
+      ScrollTrigger.create({ trigger: fig, start: 'top bottom', end: 'bottom top', onToggle: s => (s.isActive ? cometTl.play() : cometTl.pause()) });
+    }
+
+    // Foco: passar o mouse (ou o teclado) num cargo leva a etiqueta até ele.
+    function focusRole(i: number | null) {
+      if (!ready) return;
+      const k = i ?? n - 1;
+      nodes.forEach((g, j) => g.classList.toggle('is-focus', i !== null && j === k));
+      items.forEach((li, j) => li.classList.toggle('is-focus', i !== null && j === k));
+      setFlagText(k);
+      placeFlag(xy[k][0], xy[k][1], !reduced);
+    }
+    items.forEach((li, i) => {
+      li.addEventListener('pointerenter', () => focusRole(i));
+      li.addEventListener('focus', () => focusRole(i));
+      li.addEventListener('pointerleave', () => focusRole(null));
+      li.addEventListener('blur', () => focusRole(null));
+    });
+    fig.querySelectorAll<SVGCircleElement>('[data-hit]').forEach(h => {
+      h.addEventListener('pointerenter', () => focusRole(+h.dataset.hit!));
+      h.addEventListener('pointerleave', () => focusRole(null));
+    });
+
+    if (reduced) {
+      reach(n - 1, false);
+      gsap.set(flag, { opacity: 1 });
+      placeFlag(xy[n - 1][0], xy[n - 1][1], false);
+      ready = true;
+    } else {
+      gsap.set(clip, { attr: { width: 0 } });
+      gsap.set(lineEl, { strokeDashoffset: 1 });
+      gsap.set(pts, { attr: { r: 0 } });
+      const state = { p: 0 };
+      const head = () => {
+        const pt = track.getPointAtLength(state.p * total);
+        gsap.set(lineEl, { strokeDashoffset: 1 - state.p });
+        gsap.set(clip, { attr: { width: pt.x } });
+        placeFlag(pt.x, pt.y, false);
+      };
+      const tl = gsap.timeline({ paused: true, onComplete: finish });
+      tl.add(() => { reach(0, true); head(); })
+        .to(flag, { opacity: 1, duration: 0.3 }, 0.1)
+        .to({}, { duration: 0.35 });
+      // Um degrau por vez, com uma pequena pausa a cada promoção.
+      for (let i = 1; i < n; i++) {
+        tl.to(state, { p: frac[i], duration: 0.5, ease: 'power2.inOut', onUpdate: head })
+          .add(() => reach(i, true))
+          .to({}, { duration: i === n - 1 ? 0 : 0.14 });
+      }
+      ScrollTrigger.create({ trigger: fig, start: 'top 72%', once: true, onEnter: () => { tl.play(); } });
+    }
+  }
+</script>

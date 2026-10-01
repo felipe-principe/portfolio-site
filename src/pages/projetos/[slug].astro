@@ -1,0 +1,317 @@
+---
+// Página de profundidade de cada case: as mesmas 10 seções, na mesma ordem, para todo dashboard.
+// O topo responde "e daí?"; a parte técnica fica embaixo.
+import { Image, getImage } from 'astro:assets';
+import { getCollection, type CollectionEntry } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import PbiModal from '../../components/PbiModal.astro';
+import Tour from '../../components/case/Tour.astro';
+import InsightChart from '../../components/case/InsightChart.astro';
+import StarSchema from '../../components/case/StarSchema.astro';
+import ChapterNav from '../../components/case/ChapterNav.astro';
+import SqlSection from '../../components/case/SqlSection.astro';
+
+export async function getStaticPaths() {
+  const cases = await getCollection('cases', c => c.data.status === 'publicado');
+  return cases.map(c => ({ params: { slug: c.id }, props: { entry: c } }));
+}
+
+interface Props { entry: CollectionEntry<'cases'> }
+const { entry } = Astro.props;
+const c = entry.data;
+const all = (await getCollection('cases')).sort((a, b) => a.data.order - b.data.order);
+// Próximo na ordem; depois do último, volta ao primeiro (se for outro case).
+const next = all.find(x => x.data.order > c.order) ?? (all[0]?.id !== entry.id ? all[0] : null);
+const og = c.cover ? (await getImage({ src: c.cover, width: 1200, height: 630, fit: 'cover', format: 'jpg' })).src : undefined;
+
+// Realce simples de DAX: textos, funções e referências [Medida]/Tabela[Coluna].
+const FUNCS = /\b(IF|NOT|ISBLANK|DIVIDE|AVERAGE|AVERAGEX|FILTER|DATEDIFF|CALCULATE|DATEADD|SUM|COUNT|COUNTROWS|MAX|SWITCH|TRUE|BLANK|VAR|RETURN|DAY|MONTH)\b/g;
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// Linha a linha: comentários (--) ficam inteiros; nas outras, textos, funções e [referências].
+const dax = (code: string) =>
+  esc(code)
+    .split('\n')
+    .map(line =>
+      line.trimStart().startsWith('--')
+        ? `<span class="c">${line}</span>`
+        : line
+            .replace(/("[^"]*")/g, '<span class="s">$1</span>')
+            .replace(FUNCS, '<span class="f">$1</span>')
+            .replace(/(\[[^\]]+\])/g, '<span class="k">$1</span>'),
+    )
+    .join('\n');
+
+const draft = (s?: string) => (s ?? '').includes('[RASCUNHO]');
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'CreativeWork',
+  name: c.title,
+  description: c.summary,
+  author: { '@type': 'Person', name: 'Felipe Principe' },
+  keywords: c.tools.join(', '),
+};
+---
+<Base title={c.title} description={c.summary} ogImage={og} jsonLd={jsonLd}>
+  <!-- 1. Abertura -->
+  <header class="section open">
+    <a class="back" href="/#projetos"><span aria-hidden="true">←</span> Projetos</a>
+    <p class="tag" data-reveal>Case · <span class="hl">{c.dataLabel}</span>{c.badge && <> · {c.badge}</>}</p>
+    <h1 class="h1" data-reveal>{c.title}</h1>
+    {c.result && <p class="lede big" data-reveal>{c.result}</p>}
+    <dl class="facts" data-reveal>
+      {c.facts.map(f => <div><dt class="tag">{f.label}</dt><dd>{f.value}</dd></div>)}
+    </dl>
+    <div class="ctas" data-reveal>
+      {c.pbiUrl && <button class="btn btn-primary" type="button" data-open-pbi={c.pbiUrl}>Abrir dashboard interativo <span class="arrow">↗</span></button>}
+      {c.repoUrl && <a class="btn btn-ghost" href={c.repoUrl} target="_blank" rel="noopener">Ver no GitHub (.pbip)</a>}
+    </div>
+    {c.cover && (
+      <div class="cover frame" data-reveal>
+        <Image src={c.cover} alt={`Página ${c.tour[0]?.page ?? 'inicial'} do dashboard ${c.title}`} widths={[800, 1400, 2200]} sizes="100vw" loading="eager" style={`view-transition-name: cover-${entry.id}`} />
+      </div>
+    )}
+  </header>
+
+  <!-- 2. O problema -->
+  {c.problem && (
+    <section id="problema" data-chapter="O problema" class="section split">
+      <p class="tag" data-reveal>O problema</p>
+      <p class:list={['statement', { draft: draft(c.problem) }]} data-reveal>{c.problem}</p>
+    </section>
+  )}
+
+  <!-- 3. As perguntas de negócio -->
+  {c.questions.length > 0 && (
+    <section id="perguntas" data-chapter="As perguntas" class="section">
+      <div class="section-head">
+        <p class="tag" data-reveal>As perguntas</p>
+        <h2 class="h2" data-reveal>Uma pergunta por página.</h2>
+      </div>
+      <ol class="questions">
+        {c.questions.map((q, i) => (
+          <li data-reveal><span class="qn">{String(i + 1).padStart(2, '0')}</span><span class="tag">{q.page}</span><p class="h3">{q.q}</p></li>
+        ))}
+      </ol>
+    </section>
+  )}
+
+  <!-- 4. Tour do dashboard -->
+  {c.tour.length > 0 && (
+    <section id="tour" data-chapter="Tour" class="section tour-sec">
+      <div class="section-head">
+        <p class="tag" data-reveal>Tour</p>
+        <h2 class="h2" data-reveal>Página por página.</h2>
+      </div>
+      <Tour steps={c.tour} lookLabel="O que olhar" pbiUrl={c.pbiUrl} />
+    </section>
+  )}
+
+  <!-- 5. O insight -->
+  {c.insight && (
+    <section id="insight" data-chapter="O insight" class="section insight">
+      <div class="section-head">
+        <p class="tag" data-reveal>{c.insight.tag}</p>
+        <h2 class="h2" data-reveal>{c.insight.title}</h2>
+        <p class="lede" data-reveal>{c.insight.text}</p>
+      </div>
+      {c.insight.chart === 'volume-sla-abs' && <InsightChart />}
+    </section>
+  )}
+
+  <!-- 6. Dados e modelagem -->
+  {c.model && (
+    <section id="modelo" data-chapter="Dados e modelagem" class="section model">
+      <div class="section-head">
+        <p class="tag" data-reveal>Dados e modelagem</p>
+        <h2 class="h2" data-reveal>{c.model.title}</h2>
+        <p class="lede" data-reveal>{c.model.text}</p>
+      </div>
+      <div class:list={['model-grid', { 'no-schema': c.model.relations.length === 0 }]}>
+        {c.model.relations.length > 0 && <StarSchema relations={c.model.relations} layout={c.model.layout} />}
+        <ol class="build">
+          {c.model.steps.map(st => <li class:list={{ draft: draft(st) }} data-reveal>{st}</li>)}
+        </ol>
+      </div>
+    </section>
+  )}
+
+  <!-- 7. Destaques técnicos -->
+  {c.dax.length > 0 && (
+    <section id="dax" data-chapter="Destaques técnicos" class="section">
+      <div class="section-head">
+        <p class="tag" data-reveal>Destaques técnicos</p>
+        <h2 class="h2" data-reveal>O DAX e o porquê de cada escolha.</h2>
+      </div>
+      <div class="dax">
+        {c.dax.map(m => (
+          <article class="measure" data-reveal>
+            <h3 class="mono-name">{m.name}</h3>
+            <p class="why">{m.why}</p>
+            <pre class="code"><code set:html={dax(m.code)} /></pre>
+          </article>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <!-- 7b. Consultas SQL -->
+  {c.sql && (
+    <section id="sql" data-chapter="Consultas SQL" class="section">
+      <div class="section-head">
+        <p class="tag" data-reveal>Consultas SQL</p>
+        <h2 class="h2" data-reveal>As mesmas perguntas, direto no banco.</h2>
+        <p class="lede" data-reveal>Recriei o modelo em SQL (MySQL 8) e respondi as perguntas do dashboard direto no banco, com filtros, agrupamentos, JOINs e CASE.</p>
+      </div>
+      <SqlSection repoUrl={c.repoUrl} />
+    </section>
+  )}
+
+  <!-- 8. Decisões de design -->
+  {c.design.length > 0 && (
+    <section id="design" data-chapter="Design" class="section">
+      <div class="section-head">
+        <p class="tag" data-reveal>Decisões de design</p>
+        <h2 class="h2" data-reveal>Pensado, não decorado.</h2>
+      </div>
+      <div class="design">
+        {c.design.map(d => <article class:list={['dcard', { draft: draft(d.p) }]} data-reveal><h3 class="h3">{d.h}</h3><p>{d.p}</p></article>)}
+      </div>
+    </section>
+  )}
+
+  <!-- 9. Uso real e aprendizados -->
+  {c.learnings && (
+    <section id="aprendizados" data-chapter="Aprendizados" class="section">
+      <div class="section-head">
+        <p class="tag" data-reveal>Uso real e aprendizados</p>
+        <h2 class="h2" data-reveal>Da vida real para a v2.</h2>
+      </div>
+      <div class="learn">
+        <article data-reveal class:list={{ draft: draft(c.learnings.real) }}><p class="tag">Onde isso é usado</p><p>{c.learnings.real}</p></article>
+        <article data-reveal class:list={{ draft: draft(c.learnings.next) }}><p class="tag">O que eu faria diferente</p><p>{c.learnings.next}</p></article>
+      </div>
+    </section>
+  )}
+
+  <!-- 10. Fecho -->
+  <section id="fecho" data-chapter="Veja funcionando" class="section close">
+    <h2 class="h2" data-reveal>Veja funcionando.</h2>
+    <div class="ctas" data-reveal>
+      {c.pbiUrl && <button class="btn btn-primary" type="button" data-open-pbi={c.pbiUrl}>Abrir dashboard interativo <span class="arrow">↗</span></button>}
+      {c.repoUrl && <a class="btn btn-ghost" href={c.repoUrl} target="_blank" rel="noopener">Ver no GitHub (.pbip)</a>}
+      <a class="btn btn-ghost" href="/#projetos">Todos os projetos</a>
+    </div>
+    {c.deck && (
+      <a class="deck" href={c.deck.href} target="_blank" rel="noopener" data-reveal>
+        <span class="deck-thumb"><Image src={c.deck.image} alt="" widths={[240, 480]} sizes="200px" /></span>
+        <span class="deck-body">
+          <span class="tag">Bônus · apresentação</span>
+          <span class="deck-title">{c.deck.title}</span>
+          <span class="deck-text">{c.deck.text}</span>
+        </span>
+        <span class="deck-go" aria-hidden="true">↗</span>
+      </a>
+    )}
+    {next && next.data.status === 'publicado' && (
+      <a class="next is-link" href={`/projetos/${next.id}`} data-reveal>
+        <span class="tag">Próximo case</span>
+        <span class="next-title">{next.data.title}</span>
+        <span class="next-sum">{next.data.summary}</span>
+        <span class="accent" aria-hidden="true">→</span>
+      </a>
+    )}
+    {next && next.data.status === 'em-producao' && (
+      <div class="next" data-reveal>
+        <span class="tag">Próximo case</span>
+        <span class="next-title">{next.data.title}</span>
+        <span class="next-sum">{next.data.summary}</span>
+        <span class="soon"><i></i>Em produção</span>
+      </div>
+    )}
+  </section>
+
+  <PbiModal lang="pt" slot="after" />
+  <ChapterNav slot="after" pbiUrl={c.pbiUrl} />
+</Base>
+
+<style>
+  .open { padding-top: clamp(120px, 14vw, 180px); }
+  .back { display: inline-flex; gap: 8px; font-size: 14px; color: var(--text-2); margin-bottom: 40px; transition: color .2s ease; }
+  .back:hover { color: var(--text); }
+  .open .h1 { margin-top: 16px; }
+  .big { margin-top: 20px; font-size: clamp(1.2rem, 2vw, 1.6rem); }
+  .facts { display: flex; flex-wrap: wrap; gap: 16px 40px; margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border); }
+  .facts dd { margin-top: 6px; font-weight: 500; }
+  .ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 36px; }
+  .cover { margin-top: clamp(48px, 6vw, 80px); }
+  .cover :global(img) { width: 100%; height: auto; }
+
+  .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr); gap: 32px; border-top: 1px solid var(--border); }
+  .statement { font-size: clamp(1.3rem, 2.3vw, 2rem); line-height: 1.35; letter-spacing: -0.02em; }
+
+  .questions { list-style: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+  .questions li { display: flex; flex-direction: column; gap: 10px; padding: 24px; border-radius: 16px; background: var(--surface); box-shadow: 0 0 0 1px var(--border); min-height: 220px; }
+  .qn { font-family: var(--mono); font-size: 13px; color: var(--accent); }
+  .questions .h3 { margin-top: auto; }
+
+  .model-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 32px; align-items: start; }
+  .model-grid.no-schema { grid-template-columns: 1fr; max-width: 820px; }
+  .build { list-style: none; counter-reset: b; display: grid; gap: 14px; }
+  .build li { counter-increment: b; position: relative; padding: 18px 18px 18px 52px; border-radius: 14px; background: var(--surface); box-shadow: 0 0 0 1px var(--border); font-size: 15px; color: var(--text-2); }
+  .build li::before { content: counter(b, decimal-leading-zero); position: absolute; left: 18px; top: 18px; font-family: var(--mono); font-size: 12px; color: var(--accent); }
+
+  .dax { display: grid; gap: 20px; }
+  .measure { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 16px 32px; padding: 28px; border-radius: 20px; background: var(--surface); box-shadow: 0 0 0 1px var(--border); }
+  .mono-name { font-family: var(--mono); font-size: 15px; font-weight: 500; color: var(--accent); grid-column: 1; }
+  .why { color: var(--text-2); font-size: 16px; grid-column: 1; }
+  .measure .code { grid-column: 2; grid-row: 1 / span 2; align-self: start; }
+
+  .design { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .dcard { padding: 28px; border-radius: 20px; background: var(--surface); box-shadow: 0 0 0 1px var(--border); }
+  .dcard p { color: var(--text-2); margin-top: 10px; font-size: 16px; }
+
+  .learn { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .learn article { padding: 28px; border-radius: 20px; background: var(--surface); box-shadow: 0 0 0 1px var(--border); }
+  .learn article p:last-child { margin-top: 12px; color: var(--text-2); font-size: 16px; }
+
+  /* Rascunhos aparecem marcados enquanto o texto não for revisado */
+  .draft { box-shadow: 0 0 0 1px rgba(255,199,95,.45) !important; }
+  p.draft { box-shadow: none !important; text-decoration: underline dashed rgba(255,199,95,.5); text-underline-offset: 6px; }
+
+  .close { text-align: center; border-top: 1px solid var(--border); }
+  .close .ctas { justify-content: center; }
+  .deck {
+    display: flex; align-items: center; gap: 18px; max-width: 660px; margin: 40px auto 0; padding: 12px 20px 12px 12px;
+    border-radius: 16px; background: var(--surface); box-shadow: 0 0 0 1px var(--border); text-align: left;
+    transition: box-shadow .25s ease, transform .25s var(--ease-out);
+  }
+  .deck-thumb { flex: none; width: 176px; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: #0A0E18; }
+  .deck-thumb :global(img) { width: 100%; height: 100%; object-fit: cover; transition: transform .5s var(--ease-out); }
+  .deck-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .deck-title { font-weight: 600; letter-spacing: -0.01em; font-size: 16px; }
+  .deck-text { font-size: 14px; color: var(--text-2); line-height: 1.45; }
+  .deck-go { margin-left: auto; padding-left: 8px; color: var(--accent); font-size: 18px; transition: transform .2s var(--ease-out); }
+  @media (hover: hover) and (pointer: fine) {
+    .deck:hover { box-shadow: 0 0 0 1px rgba(76,201,240,.5); transform: translateY(-2px); }
+    .deck:hover .deck-thumb :global(img) { transform: scale(1.05); }
+    .deck:hover .deck-go { transform: translate(2px, -2px); }
+  }
+  @media (max-width: 560px) { .deck { flex-direction: column; align-items: stretch; padding: 12px; } .deck-thumb { width: 100%; } .deck-go { display: none; } }
+  .next { display: inline-flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 8px 16px; margin-top: 56px; padding: 18px 22px; border-radius: 14px; border: 1px dashed var(--border); color: var(--text-2); font-size: 15px; }
+  .next-title { color: var(--text); font-weight: 500; }
+  .next.is-link { border-style: solid; transition: border-color .2s ease; }
+  .next.is-link:hover { border-color: rgba(76,201,240,.55); }
+  .soon { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+  .soon i { width: 6px; height: 6px; border-radius: 50%; background: #FFC75F; box-shadow: 0 0 8px #FFC75F; }
+
+  @media (max-width: 1000px) {
+    .questions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .model-grid, .measure { grid-template-columns: 1fr; }
+    .measure .code { grid-column: 1; grid-row: auto; }
+  }
+  @media (max-width: 700px) {
+    .split, .questions, .design, .learn { grid-template-columns: 1fr; }
+    .questions li { min-height: 0; }
+    .code { font-size: 12px; }
+  }
+</style>

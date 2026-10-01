@@ -1,0 +1,116 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+interface Step { page: string; image: ImageMetadata; text: string; look?: string; pageId?: string }
+interface Props { steps: Step[]; lookLabel: string; pbiUrl?: string }
+const { steps, lookLabel, pbiUrl } = Astro.props;
+// Link do "Publicar na Web" apontando para uma página específica do relatório.
+const pageUrl = (id?: string) => (pbiUrl && id ? `${pbiUrl.replace(/&pageName=[^&]*/, '')}&pageName=${id}` : undefined);
+---
+<!-- Tour guiado: à direita, a tela fica fixa e troca de página conforme o texto rola à esquerda.
+     Páginas mais altas que a tela rolam por dentro da moldura. No celular, cada passo traz o próprio print. -->
+<div class="tour" data-tour>
+  <ol class="steps">
+    {steps.map((st, i) => (
+      <li class="step" data-step>
+        <p class="idx tag"><span class="hl">{String(i + 1).padStart(2, '0')}</span> · {st.page}</p>
+        <p class="text">{st.text}</p>
+        {st.look && <p class="look"><span class="tag">{lookLabel}</span>{st.look}</p>}
+        {pageUrl(st.pageId) && (
+          <button class="explore" type="button" data-open-pbi={pageUrl(st.pageId)}>
+            <span class="live" aria-hidden="true"></span>Explorar esta página ao vivo <span class="arr" aria-hidden="true">↗</span>
+          </button>
+        )}
+        <div class="inline frame">
+          <Image src={st.image} alt={`Página ${st.page} do dashboard`} widths={[480, 800]} sizes="100vw" />
+        </div>
+      </li>
+    ))}
+  </ol>
+
+  <div class="sticky" aria-hidden="true">
+    <div class="tabs">
+      {steps.map((st, i) => <span class:list={['tabn', { 'is-on': i === 0 }]} data-tab>{st.page}</span>)}
+    </div>
+    <div class="screen frame" data-screen>
+      {steps.map((st, i) => (
+        <div class:list={['shot', { 'is-on': i === 0 }]} data-shot>
+          <Image src={st.image} alt="" widths={[900, 1400, 2000]} sizes="(max-width: 900px) 100vw, 55vw" loading={i === 0 ? 'eager' : 'lazy'} />
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
+
+<style>
+  .tour { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr); gap: clamp(32px, 5vw, 80px); }
+  .steps { list-style: none; }
+  .step { min-height: 78vh; display: flex; flex-direction: column; justify-content: center; padding: 40px 0; }
+  .text { font-size: clamp(1.15rem, 1.6vw, 1.4rem); line-height: 1.5; margin-top: 16px; letter-spacing: -0.01em; }
+  .look { margin-top: 22px; padding-left: 16px; border-left: 2px solid var(--accent); color: var(--text-2); font-size: 16px; }
+  .look .tag { display: block; margin-bottom: 6px; color: var(--accent); }
+  .inline { display: none; margin-top: 24px; }
+  .explore {
+    align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; margin-top: 24px; height: 40px; padding: 0 16px;
+    border-radius: 999px; font-size: 14px; font-weight: 500; color: var(--text);
+    border: 1px solid var(--border); background: rgba(14,19,32,.6);
+    transition: border-color .2s ease, transform .2s var(--ease-out);
+  }
+  .explore:active { transform: scale(.97); }
+  .explore .arr { color: var(--accent); transition: transform .2s var(--ease-out); }
+  @media (hover: hover) and (pointer: fine) {
+    .explore:hover { border-color: rgba(76,201,240,.55); }
+    .explore:hover .arr { transform: translate(2px, -2px); }
+  }
+  .live { width: 7px; height: 7px; border-radius: 50%; background: #55E1A7; animation: live 2s ease-out infinite; }
+  @keyframes live { 0% { box-shadow: 0 0 0 0 rgba(85,225,167,.55); } 70%, 100% { box-shadow: 0 0 0 7px rgba(85,225,167,0); } }
+
+  .sticky { position: sticky; top: calc(50vh - var(--sh, 300px) / 2 - 24px); align-self: start; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 14px; font-family: var(--mono); font-size: 12px; }
+  .tabn { padding: 6px 12px; border-radius: 999px; color: var(--text-2); border: 1px solid transparent; transition: color .2s ease, border-color .2s ease, background-color .2s ease; }
+  .tabn.is-on { color: var(--text); border-color: rgba(76,201,240,.4); background: rgba(76,201,240,.08); }
+  .screen { aspect-ratio: 1360 / 720; }
+  .shot { position: absolute; inset: 0 0 auto 0; opacity: 0; transition: opacity .4s ease; }
+  .shot.is-on { opacity: 1; }
+  .shot :global(img) { width: 100%; height: auto; }
+
+  @media (max-width: 900px) {
+    .tour { grid-template-columns: 1fr; }
+    .sticky { display: none; }
+    .step { min-height: 0; padding: 32px 0; border-top: 1px solid var(--border); }
+    .inline { display: block; }
+  }
+</style>
+
+<script>
+  import { gsap, ScrollTrigger, reduced, stacked } from '../../scripts/motion';
+  const tour = document.querySelector<HTMLElement>('[data-tour]');
+  if (tour && !stacked()) {
+    const steps = [...tour.querySelectorAll<HTMLElement>('[data-step]')];
+    const shots = [...tour.querySelectorAll<HTMLElement>('[data-shot]')];
+    const tabs = [...tour.querySelectorAll<HTMLElement>('[data-tab]')];
+    const screen = tour.querySelector<HTMLElement>('[data-screen]')!;
+    const setSize = () => tour.style.setProperty('--sh', screen.offsetHeight + 'px');
+    setSize();
+    addEventListener('resize', setSize);
+
+    const activate = (i: number) => {
+      shots.forEach((s, j) => s.classList.toggle('is-on', j === i));
+      tabs.forEach((t, j) => t.classList.toggle('is-on', j === i));
+    };
+
+    steps.forEach((step, i) => {
+      ScrollTrigger.create({ trigger: step, start: 'top 55%', end: 'bottom 55%', onToggle: self => self.isActive && activate(i) });
+      // Página mais alta que a moldura: rola por dentro enquanto o texto do passo passa.
+      const shot = shots[i];
+      if (!reduced) {
+        gsap.fromTo(shot, { y: 0 }, {
+          y: () => -Math.max(0, shot.offsetHeight - screen.offsetHeight),
+          ease: 'none',
+          scrollTrigger: { trigger: step, start: 'top 45%', end: 'bottom 65%', scrub: 0.6, invalidateOnRefresh: true },
+        });
+      }
+    });
+  }
+</script>

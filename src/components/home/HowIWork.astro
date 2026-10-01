@@ -1,0 +1,71 @@
+---
+import { t, type Lang } from '../../i18n/ui';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const s = t(lang).how;
+---
+<section class="section how" aria-labelledby="how-title">
+  <div class="section-head">
+    <p class="tag" data-reveal>{s.tag}</p>
+    <h2 class="h2" id="how-title" data-reveal>{s.title}</h2>
+    <p class="lede" data-reveal>{s.lede}</p>
+  </div>
+
+  <div class="steps-wrap" data-steps>
+    <span class="rail" aria-hidden="true"><span class="rail-fill" data-rail></span></span>
+    <ol class="steps">
+    {s.steps.map((st, i) => (
+      <li class:list={['step', { 'is-ai': i === 3 }]} data-reveal>
+        <span class="k">{st.k}</span>
+        <h3 class="h3">{st.h}</h3>
+        <p>{st.p}</p>
+        {i === 3 && <ul class="chips"><li class="chip is-accent">Claude Code</li><li class="chip is-accent">n8n</li><li class="chip">{lang === 'pt' ? 'IA aplicada' : 'Applied AI'}</li></ul>}
+      </li>
+    ))}
+    </ol>
+  </div>
+
+  <p class="badge" data-reveal><span class="dot" aria-hidden="true"></span>{s.badge}</p>
+</section>
+
+<style>
+  .how { border-top: 1px solid var(--border); }
+  .steps-wrap { position: relative; padding-top: 36px; }
+  .steps { list-style: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
+  .rail { position: absolute; left: 0; right: 0; top: 0; height: 1px; background: var(--border); }
+  .rail-fill { position: absolute; inset: 0; background: linear-gradient(90deg, var(--blue), var(--accent)); transform: scaleX(0); transform-origin: left; }
+  .step { position: relative; padding: 28px 24px 28px 0; }
+  .step::before { content: ''; position: absolute; left: 0; top: -41px; width: 9px; height: 9px; border-radius: 50%; background: var(--bg); border: 1px solid var(--accent); }
+  .k { font-family: var(--mono); font-size: 12px; color: var(--accent); letter-spacing: .06em; }
+  .h3 { margin-top: 14px; }
+  .step p { color: var(--text-2); font-size: 16px; margin-top: 12px; }
+  .step .chips { margin-top: 18px; }
+  .step.is-ai { padding: 28px 24px; border-radius: 16px; background: linear-gradient(160deg, rgba(76,201,240,.08), rgba(129,104,222,.06)); box-shadow: 0 0 0 1px rgba(76,201,240,.25); }
+  .step.is-ai::before { left: 24px; background: var(--accent); box-shadow: 0 0 12px var(--accent); }
+  .badge { display: inline-flex; align-items: center; gap: 10px; margin-top: 48px; font-family: var(--mono); font-size: 13px; color: var(--text); padding: 10px 16px; border-radius: 999px; border: 1px solid rgba(76,201,240,.3); }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+
+  @media (max-width: 1000px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 620px) {
+    .steps-wrap { padding-top: 0; padding-left: 28px; }
+    .steps { grid-template-columns: 1fr; }
+    .rail { left: 4px; right: auto; top: 0; bottom: 0; width: 1px; height: auto; }
+    .rail-fill { transform: scaleY(0); transform-origin: top; }
+    .step, .step.is-ai { padding: 20px 0 20px 0; }
+    .step.is-ai { padding: 22px 20px; }
+    .step::before { left: -28px; top: 30px; }
+    .step.is-ai::before { left: -28px; }
+  }
+</style>
+
+<script>
+  import { gsap, reduced } from '../../scripts/motion';
+  const steps = document.querySelector<HTMLElement>('[data-steps]');
+  const fill = steps?.querySelector<HTMLElement>('[data-rail]');
+  if (steps && fill) {
+    const vertical = matchMedia('(max-width: 620px)').matches;
+    const prop = vertical ? 'scaleY' : 'scaleX';
+    if (reduced) gsap.set(fill, { [prop]: 1 });
+    else gsap.to(fill, { [prop]: 1, ease: 'none', scrollTrigger: { trigger: steps, start: 'top 80%', end: 'bottom 60%', scrub: 0.6 } });
+  }
+</script>

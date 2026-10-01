@@ -1,0 +1,52 @@
+﻿ID_Motivo;Categoria;Subcategoria;Categoria_Subcategoria
+MOT001;Plans, Signup, and Billing;Refund;Plans, Signup, and Billing > Refund
+MOT002;Plans, Signup, and Billing;Signup and Pre-Signup;Plans, Signup, and Billing > Signup and Pre-Signup
+MOT003;Plans, Signup, and Billing;Billing;Plans, Signup, and Billing > Billing
+MOT004;Plans, Signup, and Billing;Subscription Status Check;Plans, Signup, and Billing > Subscription Status Check
+MOT005;Plans, Signup, and Billing;Plans and Add-ons;Plans, Signup, and Billing > Plans and Add-ons
+MOT006;Plans, Signup, and Billing;Unauthorized Activity;Plans, Signup, and Billing > Unauthorized Activity
+MOT007;Setup My Service;Login and Logout;Setup My Service > Login and Logout
+MOT008;Setup My Service;Household Detection;Setup My Service > Household Detection
+MOT009;Setup My Service;Devices;Setup My Service > Devices
+MOT010;Setup My Service;In-App Controls;Setup My Service > In-App Controls
+MOT011;Setup My Service;Account Block;Setup My Service > Account Block
+MOT012;Setup My Service;Profiles;Setup My Service > Profiles
+MOT013;Setup My Service;Parental Controls;Setup My Service > Parental Controls
+MOT014;Setup My Service;Terms of Use;Setup My Service > Terms of Use
+MOT015;Cancel;Cost/Value;Cancel > Cost/Value
+MOT016;Cancel;Other Cancel Reasons;Cancel > Other Cancel Reasons
+MOT017;Cancel;Cancel Resubscribe;Cancel > Cancel Resubscribe
+MOT018;Cancel;Unexpected Charges;Cancel > Unexpected Charges
+MOT019;Cancel;Content Issues;Cancel > Content Issues
+MOT020;Cancel;App and Features;Cancel > App and Features
+MOT021;Cancel;Household Detection Issues;Cancel > Household Detection Issues
+MOT022;Miscellaneous;Insufficient Information;Miscellaneous > Insufficient Information
+MOT023;Miscellaneous;No Attribute for This Issue;Miscellaneous > No Attribute for This Issue
+MOT024;Miscellaneous;Transfer to Partner Support;Miscellaneous > Transfer to Partner Support
+MOT025;Miscellaneous;System Close;Miscellaneous > System Close
+MOT026;Miscellaneous;Opened by Mistake;Miscellaneous > Opened by Mistake
+MOT027;Miscellaneous;Left Voicemail;Miscellaneous > Left Voicemail
+MOT028;Miscellaneous;Feedback;Miscellaneous > Feedback
+MOT029;Using the App;Troubleshooting the App;Using the App > Troubleshooting the App
+MOT030;Using the App;Browse and Navigation;Using the App > Browse and Navigation
+MOT031;Watching;Troubleshooting Video On Demand;Watching > Troubleshooting Video On Demand
+MOT032;Watching;Troubleshooting Live TV Content;Watching > Troubleshooting Live TV Content
+MOT033;Watching;Advertisements;Watching > Advertisements
+MOT034;Watching;Playback Feature Requests;Watching > Playback Feature Requests
+MOT035;Content;Live and Upcoming Event or Show Availability;Content > Live and Upcoming Event or Show Availability
+MOT036;Content;Content Not Available on Service;Content > Content Not Available on Service
+MOT037;Content;Content Not Available in Viewer's Region;Content > Content Not Available in Viewer's Region
+MOT038;Content;Missing Scheduled Live Events or Shows;Content > Missing Scheduled Live Events or Shows
+MOT039;Content;Errors with Subtitles or Dubbing;Content > Errors with Subtitles or Dubbing
+MOT040;Content;Live Content Not Airing as Expected;Content > Live Content Not Airing as Expected
+MOT041;Content;Content Unavailable with Plan Type;Content > Content Unavailable with Plan Type
+MOT042;Content;Missing Some Episodes or Seasons;Content > Missing Some Episodes or Seasons
+MOT043;Content;Request Additional Language Option;Content > Request Additional Language Option
+MOT044;Content;VOD New Releases or Expiration Dates;Content > VOD New Releases or Expiration Dates
+MOT045;Data Privacy & Deletion;Delete Account;Data Privacy & Deletion > Delete Account
+MOT046;Data Privacy & Deletion;Reverse Account Deletion;Data Privacy & Deletion > Reverse Account Deletion
+MOT047;Data Privacy & Deletion;Delete Account (Profile);Data Privacy & Deletion > Delete Account (Profile)
+MOT048;Data Privacy & Deletion;Delete Streaming Account and Data;Data Privacy & Deletion > Delete Streaming Account and Data
+MOT049;Data Privacy & Deletion;General Data Privacy Questions;Data Privacy & Deletion > General Data Privacy Questions
+MOT050;Data Privacy & Deletion;Request Information Report;Data Privacy & Deletion > Request Information Report
+MOT051;Data Privacy & Deletion;Unsubscribe from Marketing Emails;Data Privacy & Deletion > Unsubscribe from Marketing Emails

@@ -1,0 +1,33 @@
+---
+import Base from '../../layouts/Base.astro';
+import Hero from './Hero.astro';
+import FeaturedCase from './FeaturedCase.astro';
+import Showcase from './Showcase.astro';
+import HowIWork from './HowIWork.astro';
+import About from './About.astro';
+import PbiModal from '../PbiModal.astro';
+import { getEntry } from 'astro:content';
+import { links, type Lang } from '../../i18n/ui';
+
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const featured = await getEntry('cases', 'central-atendimento');
+const person = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: 'Felipe Leão Marcicano Principe',
+  jobTitle: lang === 'pt' ? 'Analista de BI' : 'BI Analyst',
+  address: { '@type': 'PostalAddress', addressLocality: 'São Paulo', addressCountry: 'BR' },
+  email: `mailto:${links.email}`,
+  sameAs: [links.linkedin, links.github].filter(Boolean),
+  knowsAbout: ['Power BI', 'DAX', 'SQL', 'Power Query', 'Business Intelligence', 'Customer Experience', 'Claude Code', 'n8n'],
+};
+---
+<Base lang={lang} altPath={lang === 'pt' ? '/en/' : '/'} jsonLd={person}>
+  <Hero lang={lang} />
+  <FeaturedCase lang={lang} pbiUrl={featured!.data.pbiUrl!} />
+  <Showcase lang={lang} />
+  <HowIWork lang={lang} />
+  <About lang={lang} />
+  <PbiModal lang={lang} slot="after" />
+</Base>

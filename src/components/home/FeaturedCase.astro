@@ -1,0 +1,136 @@
+---
+import { getImage } from 'astro:assets';
+import { t, localePath, type Lang } from '../../i18n/ui';
+import print from '../../assets/cases/central-atendimento/01-visao-geral.png';
+
+interface Props { lang: Lang; pbiUrl: string }
+const { lang, pbiUrl } = Astro.props;
+const s = t(lang).featured;
+// Um único arquivo otimizado serve de fundo para todas as camadas recortadas.
+const img = await getImage({ src: print, format: 'webp', width: 2720, quality: 82 });
+
+// Posições reais dos visuais da página "Visão Geral" (visual.json do .pbip), em px da página 1360 × 720.
+// z = altura da camada quando explodida.
+const PAGE_W = 1360, PAGE_H = 720;
+const LAYERS: [number, number, number, number, number][] = [
+  [104, 694, 1232, 25, 40],    // texto de rodapé
+  [0, 0, 80, 720, 60],         // navegação lateral
+  [104, 195, 1232, 262, 90],   // volume por canal
+  [104, 466, 610, 226, 120],   // % SLA por mês
+  [725, 466, 610, 226, 120],   // % ABS por mês
+  [104, 99, 237, 86, 150],     // cards de KPI
+  [353, 99, 237, 86, 150],
+  [602, 99, 237, 86, 150],
+  [850, 99, 237, 86, 150],
+  [1099, 99, 237, 86, 150],
+  [297, 30, 625, 41, 190],     // segmentação de meses
+  [931, 30, 220, 42, 190],     // segmentação de datas
+  [1156, 29, 180, 42, 190],    // segmentação de canal
+  [102, 23, 170, 58, 220],     // título da página
+];
+const layerStyle = ([x, y, w, h]: number[]) => [
+  `left:${(x / PAGE_W) * 100}%`, `top:${(y / PAGE_H) * 100}%`,
+  `width:${(w / PAGE_W) * 100}%`, `height:${(h / PAGE_H) * 100}%`,
+  `background-size:${(PAGE_W / w) * 100}% ${(PAGE_H / h) * 100}%`,
+  `background-position:${w === PAGE_W ? 0 : (x / (PAGE_W - w)) * 100}% ${h === PAGE_H ? 0 : (y / (PAGE_H - h)) * 100}%`,
+].join(';');
+
+// Holofotes: área citada em cada passo (px da página).
+const SPOTS = [[100, 93, 1240, 97], [612, 282, 96, 140], [958, 534, 70, 122]];
+const spotStyle = ([x, y, w, h]: number[]) => `left:${x / 13.6}%;top:${y / 7.2}%;width:${w / 13.6}%;height:${h / 7.2}%`;
+---
+<section class="explode" id="case" aria-labelledby="case-title" data-explode style={`--print:url(${img.src})`}>
+  <div class="head">
+    <p class="tag" data-reveal>{s.tag} · <span class="hl">Central de Atendimento</span></p>
+    <h2 class="h2" id="case-title" data-reveal>{s.title}</h2>
+    <p class="meta" data-reveal>{s.meta}</p>
+  </div>
+
+  <div class="stage" data-stage>
+    <div class="plane" data-plane role="img" aria-label={s.planeLabel}>
+      <div class="layer base"><div class="shade" data-shade></div></div>
+      {LAYERS.map(l => <div class="layer" data-layer data-z={l[4]} style={layerStyle(l)}><span class="edge" data-edge></span></div>)}
+      <div class="spots">
+        {SPOTS.map((b, i) => <span class="spot" data-spot style={spotStyle(b)}><span class="num">{i + 1}</span></span>)}
+      </div>
+    </div>
+    <!-- Coluna da direita (desktop): legendas + botões, sempre visíveis enquanto a seção está fixa -->
+    <div class="side" data-side>
+      <div class="caption" data-caption aria-hidden="true">
+        {s.steps.map(st => (
+          <div class="cap" data-cap><p class="n">{st.n}</p><h3 class="cap-h">{st.h}</h3><p class="cap-p">{st.p}</p></div>
+        ))}
+        <div class="prog"><i><b data-prog></b></i><i><b data-prog></b></i><i><b data-prog></b></i></div>
+      </div>
+      <div class="side-ctas" data-side-ctas>
+        <a class="btn btn-primary" href={localePath(lang, '/projetos/central-atendimento')}>{s.ctaCase} <span class="arrow">→</span></a>
+        <button class="btn btn-ghost" type="button" data-open-pbi={pbiUrl}><span class="live" aria-hidden="true"></span>{s.ctaLive}</button>
+      </div>
+    </div>
+  </div>
+
+  <ol class="list">
+    {s.steps.map((st, i) => <li><b>{i + 1}</b><span><strong>{st.h}</strong> {st.p}</span></li>)}
+  </ol>
+
+  <div class="ctas">
+    <a class="btn btn-primary" href={localePath(lang, '/projetos/central-atendimento')}>{s.ctaCase} <span class="arrow">→</span></a>
+    <button class="btn btn-ghost" type="button" data-open-pbi={pbiUrl}>{s.ctaLive}</button>
+  </div>
+</section>
+
+<style>
+  .explode { position: relative; min-height: 100svh; display: flex; flex-direction: column; align-items: center; padding: 104px var(--inline) 56px; overflow: hidden; }
+  .explode::before { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: radial-gradient(50% 40% at 50% 60%, rgba(42,154,201,.10), transparent 70%); }
+  .head { position: relative; z-index: 3; text-align: center; max-width: 820px; }
+  .head .h2 { margin-top: 14px; }
+  .meta { color: var(--text-2); margin-top: 14px; font-size: 16px; }
+
+  .stage { position: relative; perspective: 2200px; perspective-origin: 50% 30%; margin-top: 32px; width: 100%; display: flex; justify-content: center; }
+  .plane { position: relative; width: var(--pw, 1100px); aspect-ratio: 1360 / 720; transform-style: preserve-3d; will-change: transform; }
+  .layer { position: absolute; background-image: var(--print); background-repeat: no-repeat; border-radius: 6px; transform-style: preserve-3d; will-change: transform; }
+  .layer.base { inset: 0; border-radius: 10px; background-size: 100% 100%; box-shadow: 0 60px 120px -40px rgba(0,0,0,.9), 0 0 0 1px var(--border); overflow: hidden; }
+  .shade { position: absolute; inset: 0; background: #05070C; opacity: 0; pointer-events: none; }
+  .edge { position: absolute; inset: -1px; border-radius: inherit; border: 1px solid rgba(76,201,240,.55); box-shadow: 0 24px 48px -18px rgba(0,0,0,.85), 0 0 24px -6px rgba(76,201,240,.35); opacity: 0; pointer-events: none; }
+
+  /* Holofote: contorna a área citada e escurece o resto do dashboard */
+  .spots { position: absolute; inset: 0; border-radius: 10px; overflow: hidden; pointer-events: none; }
+  .spot { position: absolute; border: 1.5px solid var(--accent); border-radius: 8px; box-shadow: 0 0 0 9999px rgba(4,6,10,.55), 0 0 28px rgba(76,201,240,.45), inset 0 0 18px rgba(76,201,240,.18); opacity: 0; }
+  .num { position: absolute; left: -1.5px; bottom: calc(100% + 6px); height: 20px; min-width: 20px; padding: 0 6px; border-radius: 6px; display: grid; place-items: center; font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--bg); background: var(--accent); }
+
+  .side { position: absolute; top: 50%; width: var(--cw, 360px); transform: translateY(-50%); }
+  .caption { position: relative; height: 250px; opacity: 0; visibility: hidden; }
+  .cap { position: absolute; inset: 0 0 auto 0; }
+  .n { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  .cap-h { font-weight: 600; letter-spacing: -0.035em; font-size: clamp(1.75rem, 2.6vw, 2.5rem); line-height: 1.05; margin-top: 12px; }
+  .cap-p { color: var(--text-2); margin-top: 14px; font-size: 17px; }
+  .prog { position: absolute; left: 0; bottom: 0; display: flex; gap: 6px; }
+  .prog i { width: 28px; height: 2px; border-radius: 2px; background: var(--border); overflow: hidden; }
+  .prog b { display: block; height: 100%; background: var(--accent); transform: scaleX(0); transform-origin: left; }
+
+  .list { display: none; list-style: none; margin-top: 28px; width: 100%; max-width: 560px; }
+  .list li { display: grid; grid-template-columns: 26px 1fr; gap: 12px; padding: 14px 0; border-top: 1px solid var(--border); font-size: 15px; color: var(--text-2); }
+  .list strong { color: var(--text); font-weight: 500; }
+  .list b { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; background: var(--accent); color: var(--bg); font-family: var(--mono); font-size: 11px; font-weight: 500; margin-top: 2px; }
+  .ctas { display: none; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 36px; }
+  .side-ctas { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; opacity: 0; visibility: hidden; }
+  .side-ctas .btn { height: 44px; padding: 0 18px; font-size: 14px; }
+  /* ponto "ao vivo" no botão do dashboard interativo */
+  .live { width: 7px; height: 7px; border-radius: 50%; background: #55E1A7; box-shadow: 0 0 0 0 rgba(85,225,167,.6); animation: live 2s ease-out infinite; }
+  @keyframes live { 0% { box-shadow: 0 0 0 0 rgba(85,225,167,.55); } 70%, 100% { box-shadow: 0 0 0 7px rgba(85,225,167,0); } }
+
+  @media (max-width: 900px) {
+    .explode { min-height: 0; padding-top: 96px; }
+    .side { display: none; }
+    .ctas { display: flex; }
+    .list { display: block; }
+    .spot { box-shadow: 0 0 16px rgba(76,201,240,.4); border-radius: 5px; }
+    .num { height: 16px; min-width: 16px; font-size: 10px; padding: 0 4px; border-radius: 4px; bottom: calc(100% + 3px); }
+  }
+</style>
+
+<script>
+  import { initExplode } from '../../scripts/exploded';
+  const el = document.querySelector<HTMLElement>('[data-explode]');
+  if (el) initExplode(el);
+</script>

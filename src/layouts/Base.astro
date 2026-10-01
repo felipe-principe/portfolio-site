@@ -1,0 +1,62 @@
+---
+import '../styles/global.css';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import { t, type Lang } from '../i18n/ui';
+
+interface Props {
+  lang?: Lang;
+  title?: string;
+  description?: string;
+  /** caminho equivalente na outra língua, para o seletor PT/EN */
+  altPath?: string;
+  ogImage?: string;
+  jsonLd?: Record<string, unknown>;
+}
+
+const { lang = 'pt', title, description, altPath, ogImage, jsonLd } = Astro.props;
+const s = t(lang);
+const pageTitle = title ? `${title} · Felipe Principe` : s.meta.title;
+const desc = description ?? s.meta.description;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const og = ogImage ? new URL(ogImage, Astro.site) : undefined;
+---
+<!doctype html>
+<html lang={lang === 'pt' ? 'pt-BR' : 'en'}>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{pageTitle}</title>
+  <meta name="description" content={desc} />
+  <link rel="canonical" href={canonical} />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="theme-color" content="#07090F" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content={pageTitle} />
+  <meta property="og:description" content={desc} />
+  <meta property="og:url" content={canonical} />
+  {og && <meta property="og:image" content={og} />}
+  <meta name="twitter:card" content="summary_large_image" />
+  {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+  <script is:inline>document.documentElement.classList.add('js')</script>
+</head>
+<body>
+  <a class="skip" href="#conteudo">{s.nav.skip}</a>
+  <Nav lang={lang} altPath={altPath} />
+  <main id="conteudo">
+    <slot />
+  </main>
+  <Footer lang={lang} />
+  <slot name="after" />
+  <script>
+    import { initSmoothScroll, initReveals } from '../scripts/motion';
+    initSmoothScroll();
+    initReveals();
+  </script>
+</body>
+</html>
+
+<style>
+  .skip { position: fixed; left: 16px; top: -60px; z-index: 100; padding: 10px 16px; border-radius: 8px; background: var(--accent); color: var(--bg); font-size: 14px; transition: transform .2s var(--ease-out); }
+  .skip:focus { transform: translateY(76px); }
+</style>

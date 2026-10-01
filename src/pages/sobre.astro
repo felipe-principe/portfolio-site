@@ -1,0 +1,45 @@
+---
+import Base from '../layouts/Base.astro';
+import About from '../components/home/About.astro';
+import { links } from '../i18n/ui';
+
+const skills = [
+  { h: 'BI e dados', items: ['Power BI', 'DAX', 'Power Query', 'Modelagem dimensional', 'SQL', 'Excel avançado (tabelas dinâmicas, fórmulas, formatação condicional)', 'Tableau e Salesforce (extração e análise)'] },
+  { h: 'IA e automação', items: ['Claude Code', 'n8n', 'Automação de processos', 'Relatórios automáticos por e-mail', 'Sites e apresentações com IA'] },
+  { h: 'Operação e qualidade', items: ['KPIs de CX (PE, IR, CSAT, NPS, AHT, QA)', 'Análise de efetividade de treinamento', 'Pareto', 'Ishikawa', 'Kirkpatrick'] },
+  { h: 'Apresentação e design', items: ['PowerPoint (avançado)', 'Canva (avançado)', 'Pacote Office (avançado)', 'Photoshop', 'Premiere', 'After Effects'] },
+];
+---
+<Base title="Sobre" description="Felipe Principe: 7+ anos em operações de Customer Experience, hoje construindo o BI dessas operações.">
+  <div class="spacer"></div>
+  <About lang="pt" showMore={false} />
+  <section class="section skills">
+    <div class="section-head">
+      <p class="tag" data-reveal>Ferramentas</p>
+      <h2 class="h2" data-reveal>O que eu uso no dia a dia.</h2>
+    </div>
+    <div class="grid">
+      {skills.map(s => (
+        <article data-reveal>
+          <h3 class="h3">{s.h}</h3>
+          <ul class="chips">{s.items.map(i => <li class="chip">{i}</li>)}</ul>
+        </article>
+      ))}
+    </div>
+    <div class="facts">
+      <div data-reveal><p class="tag">Formação</p><p>Tecnólogo em Big Data e Inteligência Analítica · Anhembi Morumbi · conclusão em 2028</p></div>
+      <div data-reveal><p class="tag">Idiomas</p><p>Português nativo · Inglês avançado (reuniões com stakeholders globais)</p></div>
+      <div data-reveal><p class="tag">Currículo</p><p><a class="accent" href={links.cv} target="_blank" rel="noopener">Baixar PDF ↗</a></p></div>
+    </div>
+  </section>
+</Base>
+<style>
+  .spacer { height: 64px; }
+  .skills { border-top: 1px solid var(--border); }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  article { padding: 28px; border-radius: 20px; background: var(--surface); box-shadow: 0 0 0 1px var(--border); }
+  article .chips { margin-top: 18px; }
+  .facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin-top: 48px; }
+  .facts p:last-child { margin-top: 8px; color: var(--text-2); font-size: 16px; }
+  @media (max-width: 800px) { .grid, .facts { grid-template-columns: 1fr; } }
+</style>

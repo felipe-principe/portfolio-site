@@ -1,0 +1,463 @@
+[
+  {
+    "id": "01_visao_geral",
+    "arquivo": "01_visao_geral.sql",
+    "nivel": "Fundamentos",
+    "titulo": "Visão geral do ano",
+    "pergunta": "Qual é o tamanho da operação no ano? Quantos chamados, quantos clientes e quanto dura um atendimento?",
+    "usa": "COUNT, COUNT(DISTINCT), AVG, MIN e MAX.",
+    "leitura": "o retrato do ano numa linha; são os mesmos números dos cards da Visão Geral do dashboard.",
+    "sql": "SELECT\n    COUNT(*)                         AS total_chamados,\n    COUNT(DISTINCT id_cliente)       AS clientes_atendidos,\n    COUNT(DISTINCT id_agente)        AS agentes,\n    ROUND(AVG(duracao_min), 2)       AS tma_min,\n    MIN(duracao_min)                 AS menor_duracao_min,\n    MAX(duracao_min)                 AS maior_duracao_min,\n    ROUND(AVG(tempo_espera_seg), 1)  AS espera_media_seg\nFROM fato_chamados;",
+    "colunas": [
+      "total_chamados",
+      "clientes_atendidos",
+      "agentes",
+      "tma_min",
+      "menor_duracao_min",
+      "maior_duracao_min",
+      "espera_media_seg"
+    ],
+    "linhas": [
+      [
+        "141431",
+        "35754",
+        "90",
+        15.12,
+        "0.5",
+        "240.0",
+        26.6
+      ]
+    ],
+    "total_linhas": 1
+  },
+  {
+    "id": "02_chamados_por_mes",
+    "arquivo": "02_chamados_por_mes.sql",
+    "nivel": "Fundamentos",
+    "titulo": "Volume e SLA por mês",
+    "pergunta": "Como o volume e o SLA se comportaram mês a mês?",
+    "usa": "GROUP BY com MONTH(), CASE dentro do SUM para contar só os chamados no prazo, ORDER BY.",
+    "leitura": "junho é o mês de maior volume e o único com SLA abaixo de 80%.",
+    "sql": "SELECT\n    MONTH(data_abertura)                                                     AS mes,\n    COUNT(*)                                                                 AS chamados,\n    SUM(CASE WHEN sla_cumprido = 'Sim' THEN 1 ELSE 0 END)                    AS chamados_no_sla,\n    ROUND(100.0 * SUM(CASE WHEN sla_cumprido = 'Sim' THEN 1 ELSE 0 END) / COUNT(*), 1) AS pct_sla,\n    ROUND(AVG(duracao_min), 2)                                               AS tma_min\nFROM fato_chamados\nWHERE YEAR(data_abertura) = 2025\nGROUP BY MONTH(data_abertura)\nORDER BY mes;",
+    "colunas": [
+      "mes",
+      "chamados",
+      "chamados_no_sla",
+      "pct_sla",
+      "tma_min"
+    ],
+    "linhas": [
+      [
+        "1",
+        "11125",
+        "9061",
+        81.4,
+        15.53
+      ],
+      [
+        "2",
+        "10444",
+        "8546",
+        81.8,
+        15.29
+      ],
+      [
+        "3",
+        "11965",
+        "9826",
+        82.1,
+        15.34
+      ],
+      [
+        "4",
+        "13671",
+        "11147",
+        81.5,
+        15.24
+      ],
+      [
+        "5",
+        "11694",
+        "9679",
+        82.8,
+        14.95
+      ],
+      [
+        "6",
+        "15856",
+        "12192",
+        76.9,
+        17.53
+      ],
+      [
+        "7",
+        "13830",
+        "11408",
+        82.5,
+        14.99
+      ],
+      [
+        "8",
+        "11826",
+        "9878",
+        83.5,
+        14.48
+      ],
+      [
+        "9",
+        "11094",
+        "9238",
+        83.3,
+        14.5
+      ],
+      [
+        "10",
+        "10785",
+        "9148",
+        84.8,
+        14.22
+      ],
+      [
+        "11",
+        "10164",
+        "8512",
+        83.7,
+        14.28
+      ],
+      [
+        "12",
+        "8977",
+        "7643",
+        85.1,
+        13.81
+      ]
+    ],
+    "total_linhas": 12
+  },
+  {
+    "id": "03_junho_fora_do_sla",
+    "arquivo": "03_junho_fora_do_sla.sql",
+    "nivel": "Fundamentos",
+    "titulo": "Junho fora do SLA",
+    "pergunta": "Em junho, quais chamados de telefone estouraram o SLA com a maior espera na fila?",
+    "usa": "WHERE com AND e intervalo de datas, ORDER BY decrescente e LIMIT.",
+    "leitura": "a lista que o supervisor usaria para ouvir as ligações e entender o que travou.",
+    "sql": "SELECT\n    id_chamado,\n    data_abertura,\n    id_agente,\n    tempo_espera_seg,\n    duracao_min,\n    status_caso\nFROM fato_chamados\nWHERE data_abertura >= '2025-06-01'\n  AND data_abertura <  '2025-07-01'\n  AND id_canal = 'CAN2'            -- Telefone\n  AND sla_cumprido = 'Nao'\nORDER BY tempo_espera_seg DESC\nLIMIT 10;",
+    "colunas": [
+      "id_chamado",
+      "data_abertura",
+      "id_agente",
+      "tempo_espera_seg",
+      "duracao_min",
+      "status_caso"
+    ],
+    "linhas": [
+      [
+        "CH174213",
+        "2025-06-29 21:53:27",
+        "AG011",
+        "208.0",
+        "23.5",
+        "Encerrado"
+      ],
+      [
+        "CH159860",
+        "2025-06-02 20:56:01",
+        "AG062",
+        "202.0",
+        "27.1",
+        "Encerrado"
+      ],
+      [
+        "CH162928",
+        "2025-06-08 20:14:30",
+        "AG038",
+        "183.0",
+        "58.5",
+        "Encerrado"
+      ],
+      [
+        "CH161757",
+        "2025-06-06 16:29:12",
+        "AG050",
+        "176.0",
+        "20.5",
+        "Encerrado"
+      ],
+      [
+        "CH172897",
+        "2025-06-27 15:38:52",
+        "AG008",
+        "174.0",
+        "22.3",
+        "Encerrado"
+      ],
+      [
+        "CH165342",
+        "2025-06-13 18:55:43",
+        "AG068",
+        "173.0",
+        "31.4",
+        "Encerrado"
+      ],
+      [
+        "CH160097",
+        "2025-06-03 12:57:46",
+        "AG076",
+        "166.0",
+        "35.3",
+        "Encerrado"
+      ],
+      [
+        "CH159324",
+        "2025-06-01 20:12:41",
+        "AG044",
+        "154.0",
+        "28.6",
+        "Encerrado"
+      ],
+      [
+        "CH160229",
+        "2025-06-03 17:02:50",
+        "AG089",
+        "148.0",
+        "21.6",
+        "Encerrado"
+      ],
+      [
+        "CH167832",
+        "2025-06-17 12:26:27",
+        "AG076",
+        "147.0",
+        "25.4",
+        "Encerrado"
+      ]
+    ],
+    "total_linhas": 10
+  },
+  {
+    "id": "04_top_motivos",
+    "arquivo": "04_top_motivos.sql",
+    "nivel": "Fundamentos",
+    "titulo": "Top 5 motivos",
+    "pergunta": "Quais são os 5 motivos que mais geram contato, e qual o SLA de cada um?",
+    "usa": "INNER JOIN com a dimensão de motivos, GROUP BY, ORDER BY e LIMIT.",
+    "leitura": "com volumes parecidos, as categorias entregam SLAs bem diferentes: o gargalo é o tipo de caso, não só o volume.",
+    "sql": "SELECT\n    m.categoria,\n    COUNT(*)                                                                 AS chamados,\n    ROUND(100.0 * SUM(CASE WHEN c.sla_cumprido = 'Sim' THEN 1 ELSE 0 END) / COUNT(*), 1) AS pct_sla,\n    ROUND(AVG(c.duracao_min), 2)                                             AS tma_min\nFROM fato_chamados AS c\nINNER JOIN dim_motivo AS m\n        ON m.id_motivo = c.id_motivo\nGROUP BY m.categoria\nORDER BY chamados DESC\nLIMIT 5;",
+    "colunas": [
+      "categoria",
+      "chamados",
+      "pct_sla",
+      "tma_min"
+    ],
+    "linhas": [
+      [
+        "Plans, Signup, and Billing",
+        "40037",
+        80,
+        16.25
+      ],
+      [
+        "Setup My Service",
+        "39069",
+        84.1,
+        14.34
+      ],
+      [
+        "Cancel",
+        "29694",
+        79.2,
+        16.5
+      ],
+      [
+        "Using the App",
+        "11693",
+        79.5,
+        16.43
+      ],
+      [
+        "Miscellaneous",
+        "10608",
+        95.6,
+        8.2
+      ]
+    ],
+    "total_linhas": 5
+  },
+  {
+    "id": "05_abs_por_mes",
+    "arquivo": "05_abs_por_mes.sql",
+    "nivel": "Fundamentos",
+    "titulo": "Meses acima da meta de ABS",
+    "pergunta": "Em que meses o absenteísmo passou da meta de 4%?",
+    "usa": "GROUP BY na tabela de escala, CASE para contar faltas e HAVING para filtrar o resultado agrupado.",
+    "leitura": "só junho e julho passam da meta, e junho lidera com 5,81%, no mesmo mês em que o SLA caiu para 76,9%.",
+    "sql": "SELECT\n    MONTH(data)                                                              AS mes,\n    COUNT(*)                                                                 AS dias_escalados,\n    SUM(CASE WHEN falta = 'Sim' THEN 1 ELSE 0 END)                           AS faltas,\n    ROUND(100.0 * SUM(CASE WHEN falta = 'Sim' THEN 1 ELSE 0 END) / COUNT(*), 2) AS pct_abs\nFROM fato_escala\nGROUP BY MONTH(data)\nHAVING 100.0 * SUM(CASE WHEN falta = 'Sim' THEN 1 ELSE 0 END) / COUNT(*) > 4\nORDER BY pct_abs DESC;",
+    "colunas": [
+      "mes",
+      "dias_escalados",
+      "faltas",
+      "pct_abs"
+    ],
+    "linhas": [
+      [
+        "6",
+        "2219",
+        "129",
+        5.81
+      ],
+      [
+        "7",
+        "2197",
+        "91",
+        4.14
+      ]
+    ],
+    "total_linhas": 2
+  },
+  {
+    "id": "06_equipes",
+    "arquivo": "06_equipes.sql",
+    "nivel": "Fundamentos",
+    "titulo": "Ranking de equipes",
+    "pergunta": "Como cada equipe entrega em volume, TMA, SLA e satisfação?",
+    "usa": "INNER JOIN com a dimensão de agentes, CONCAT, CASE e média só de quem respondeu a pesquisa.",
+    "leitura": "as três equipes com maior TMA também têm o pior SLA e a menor satisfação; é por elas que o plano de ação começa.",
+    "sql": "SELECT\n    CONCAT('Equipe ', a.supervisor)                                          AS equipe,\n    COUNT(*)                                                                 AS chamados,\n    ROUND(AVG(c.duracao_min), 2)                                             AS tma_min,\n    ROUND(100.0 * SUM(CASE WHEN c.sla_cumprido = 'Sim' THEN 1 ELSE 0 END) / COUNT(*), 1) AS pct_sla,\n    ROUND(100.0 * SUM(CASE WHEN c.nota_experiencia >= 4 THEN 1 ELSE 0 END)\n          / SUM(CASE WHEN c.pesquisa_respondida = 'Sim' THEN 1 ELSE 0 END), 1) AS pct_positive_experience\nFROM fato_chamados AS c\nINNER JOIN dim_agente AS a\n        ON a.id_agente = c.id_agente\nGROUP BY a.supervisor\nORDER BY tma_min DESC;",
+    "colunas": [
+      "equipe",
+      "chamados",
+      "tma_min",
+      "pct_sla",
+      "pct_positive_experience"
+    ],
+    "linhas": [
+      [
+        "Equipe Leonel Quadros",
+        "4340",
+        17.15,
+        77.5,
+        93.5
+      ],
+      [
+        "Equipe Gilberto Rezende",
+        "13106",
+        17.09,
+        77.8,
+        91
+      ],
+      [
+        "Equipe Cesar Paranhos",
+        "21602",
+        16.56,
+        79.2,
+        92.8
+      ],
+      [
+        "Equipe Vivian Portela",
+        "6821",
+        15.5,
+        80.8,
+        95.1
+      ],
+      [
+        "Equipe Otto Bernardes",
+        "31064",
+        15.03,
+        82.5,
+        94.8
+      ],
+      [
+        "Equipe Juliana Wanderley",
+        "22926",
+        14.85,
+        82.8,
+        96.1
+      ],
+      [
+        "Equipe Eliane Trindade",
+        "7115",
+        14.21,
+        84.3,
+        96
+      ],
+      [
+        "Equipe Adriana Bittencourt",
+        "16793",
+        13.98,
+        84.9,
+        97.2
+      ],
+      [
+        "Equipe Mirela Sampaio",
+        "17664",
+        13.24,
+        86.3,
+        97.5
+      ]
+    ],
+    "total_linhas": 9
+  },
+  {
+    "id": "07_canal_e_turno",
+    "arquivo": "07_canal_e_turno.sql",
+    "nivel": "Fundamentos",
+    "titulo": "Canal × turno",
+    "pergunta": "Em qual canal e turno o nível de serviço sofre mais?",
+    "usa": "INNER JOIN com a dimensão de canais, CASE para criar o turno a partir da hora, GROUP BY em duas colunas.",
+    "leitura": "a tarde concentra a maior espera e o pior nível de serviço (~73%) nos dois canais; a noite passa folgada da meta de 80%.",
+    "sql": "SELECT\n    ch.nome_canal                                                            AS canal,\n    CASE\n        WHEN HOUR(c.data_abertura) BETWEEN 6 AND 13  THEN '1. Manhã'\n        WHEN HOUR(c.data_abertura) BETWEEN 14 AND 21 THEN '2. Tarde'\n        ELSE '3. Noite'\n    END                                                                      AS turno,\n    COUNT(*)                                                                 AS chamados,\n    ROUND(AVG(c.tempo_espera_seg), 1)                                        AS espera_media_seg,\n    ROUND(100.0 * SUM(CASE WHEN c.nivel_servico_cumprido = 'Sim' THEN 1 ELSE 0 END) / COUNT(*), 1) AS pct_nivel_servico\nFROM fato_chamados AS c\nINNER JOIN dim_canal AS ch\n        ON ch.id_canal = c.id_canal\nGROUP BY ch.nome_canal, turno\nORDER BY canal, turno;",
+    "colunas": [
+      "canal",
+      "turno",
+      "chamados",
+      "espera_media_seg",
+      "pct_nivel_servico"
+    ],
+    "linhas": [
+      [
+        "Chat",
+        "1. Manhã",
+        "32865",
+        21.8,
+        80.3
+      ],
+      [
+        "Chat",
+        "2. Tarde",
+        "52302",
+        25.4,
+        72.9
+      ],
+      [
+        "Chat",
+        "3. Noite",
+        "12205",
+        17.4,
+        87.9
+      ],
+      [
+        "Telefone",
+        "1. Manhã",
+        "14698",
+        32.2,
+        80.4
+      ],
+      [
+        "Telefone",
+        "2. Tarde",
+        "23290",
+        37.9,
+        72.8
+      ],
+      [
+        "Telefone",
+        "3. Noite",
+        "6071",
+        24.2,
+        89.4
+      ]
+    ],
+    "total_linhas": 6
+  }
+]

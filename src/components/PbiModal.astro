@@ -1,0 +1,59 @@
+---
+import { t, type Lang } from '../i18n/ui';
+interface Props { lang: Lang }
+const s = t(Astro.props.lang).modal;
+---
+<!-- Dashboard interativo: o Power BI só carrega quando alguém clica num botão [data-open-pbi]. -->
+<dialog class="pbi" data-pbi aria-label={s.tag}>
+  <div class="box">
+    <div class="bar">
+      <p class="tag">{s.tag}</p>
+      <button class="close" type="button" data-close>{s.close} ✕</button>
+    </div>
+    <div class="frame-box" data-frame></div>
+  </div>
+</dialog>
+
+<style>
+  .pbi { position: fixed; inset: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; border: 0; background: transparent; padding: 24px; color: var(--text); opacity: 0; transition: opacity .25s var(--ease-out); }
+  .pbi:global(.is-on) { opacity: 1; }
+  .pbi::backdrop { background: rgba(3,5,9,.82); backdrop-filter: blur(6px); }
+  .box { width: 100%; height: 100%; display: flex; flex-direction: column; gap: 12px; transform: scale(.97); transition: transform .3s var(--ease-out); }
+  .pbi:global(.is-on) .box { transform: scale(1); }
+  .bar { display: flex; justify-content: space-between; align-items: center; }
+  .frame-box { flex: 1; border-radius: 14px; overflow: hidden; border: 1px solid var(--border); background: var(--surface); }
+  .frame-box :global(iframe) { width: 100%; height: 100%; border: 0; display: block; }
+  .close { height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--border); font-size: 14px; transition: border-color .2s ease; }
+  .close:hover { border-color: var(--accent); }
+</style>
+
+<script>
+  const dlg = document.querySelector<HTMLDialogElement>('[data-pbi]')!;
+  const box = dlg.querySelector<HTMLElement>('[data-frame]')!;
+  const narrow = () => matchMedia('(max-width: 900px)').matches;
+  let opener: HTMLElement | null = null;
+
+  document.addEventListener('click', e => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-open-pbi]');
+    if (!btn) return;
+    const url = btn.dataset.openPbi!;
+    // No celular o embed do Power BI fica minúsculo: abre direto numa aba nova.
+    if (narrow()) { window.open(url, '_blank', 'noopener'); return; }
+    opener = btn;
+    const frame = document.createElement('iframe');
+    frame.title = 'Dashboard Power BI';
+    frame.src = url;
+    frame.allowFullscreen = true;
+    box.replaceChildren(frame);
+    dlg.showModal();
+    requestAnimationFrame(() => dlg.classList.add('is-on'));
+  });
+
+  function close() {
+    dlg.classList.remove('is-on');
+    setTimeout(() => { dlg.close(); box.replaceChildren(); opener?.focus(); }, 250);
+  }
+  dlg.querySelector('[data-close]')!.addEventListener('click', close);
+  dlg.addEventListener('cancel', e => { e.preventDefault(); close(); });
+  dlg.addEventListener('click', e => { if (e.target === dlg) close(); });
+</script>

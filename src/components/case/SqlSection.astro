@@ -1,0 +1,177 @@
+---
+// Seção "Consultas SQL" do case: as perguntas do dashboard respondidas direto no banco.
+// Código e resultados vêm de sql/consultas (gerados por sql/rodar.mjs em src/data/sql.json).
+import consultas from '../../data/sql.json';
+
+interface Props { repoUrl?: string }
+const { repoUrl } = Astro.props;
+
+const fundamentos = consultas.filter(q => q.nivel.startsWith('Fundamentos'));
+const proximo = consultas.filter(q => !q.nivel.startsWith('Fundamentos'));
+
+// Realce simples de SQL: comentários, textos, palavras-chave, funções e números.
+const KW = /\b(SELECT|FROM|WHERE|AND|OR|NOT|IN|BETWEEN|AS|ON|INNER|LEFT|JOIN|GROUP|BY|ORDER|HAVING|LIMIT|DESC|ASC|CASE|WHEN|THEN|ELSE|END|WITH|OVER|DISTINCT|NULL|IS)\b/g;
+const FN = /\b(COUNT|SUM|AVG|MIN|MAX|ROUND|MONTH|YEAR|HOUR|CONCAT|LAG|NULLIF)\b(?=\s*\()/g;
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const hl = (sql: string) =>
+  sql.split('\n').map(line => {
+    const i = line.indexOf('--');
+    const code = i >= 0 ? line.slice(0, i) : line;
+    const comment = i >= 0 ? line.slice(i) : '';
+    const parts = esc(code).split(/('[^']*')/g).map((p, k) =>
+      k % 2 ? `<span class="s">${p}</span>` : p.replace(FN, '<span class="f">$1</span>').replace(KW, '<span class="k">$1</span>').replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="n">$1</span>'),
+    );
+    return parts.join('') + (comment ? `<span class="c">${esc(comment)}</span>` : '');
+  }).join('\n');
+
+// Números no padrão brasileiro; identificadores e textos ficam como vieram.
+const fmt = (v: unknown, col: string) => {
+  if (v === null || v === undefined || v === '') return '—';
+  const s = String(v);
+  if (/^data/.test(col) && /^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const [d, t] = s.split(' ');
+    const [y, m, dd] = d.split('-');
+    return `${dd}/${m}/${y}${t ? ' ' + t.slice(0, 5) : ''}`;
+  }
+  if (/^id_/.test(col) || !/^-?\d+(\.\d+)?$/.test(s)) return s;
+  const n = Number(s);
+  const dec = s.includes('.') ? Math.min(2, s.split('.')[1].replace(/0+$/, '').length) : 0;
+  return n.toLocaleString('pt-BR', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+};
+const isNum = (v: unknown, col: string) => !/^id_/.test(col) && v !== null && /^-?\d+(\.\d+)?$/.test(String(v));
+const label = (c: string) => c.replace(/^pct_/, '% ').replace(/_/g, ' ');
+const all = [...fundamentos, ...proximo];
+// colunas numéricas (alinhadas à direita, título e valores)
+const numCols = (q: (typeof consultas)[number]) => q.colunas.map((c, k) => q.linhas.some(row => isNum(row[k], c)));
+---
+<div class="sql" data-sql>
+  <div class="tabs" role="tablist" aria-label="Consultas SQL" aria-orientation="vertical">
+    <p class="group tag">Consultas · MySQL 8</p>
+    {fundamentos.map(q => (
+      <button class="tab" role="tab" id={`tab-${q.id}`} aria-controls={`panel-${q.id}`} aria-selected={q === all[0] ? 'true' : 'false'} tabindex={q === all[0] ? 0 : -1} data-tab>
+        <span class="num">{q.id.slice(0, 2)}</span><span class="t">{q.titulo}</span>
+      </button>
+    ))}
+    {proximo.length > 0 && <p class="group tag next">Próximo nível</p>}
+    {proximo.map(q => (
+      <button class="tab" role="tab" id={`tab-${q.id}`} aria-controls={`panel-${q.id}`} aria-selected="false" tabindex="-1" data-tab>
+        <span class="num">{q.id.slice(0, 2)}</span><span class="t">{q.titulo}</span>
+      </button>
+    ))}
+  </div>
+
+  <div class="panels">
+    {all.map((q, i) => (
+      <article class="panel" role="tabpanel" id={`panel-${q.id}`} aria-labelledby={`tab-${q.id}`} hidden={i !== 0} data-panel>
+        <h3 class="q">{q.pergunta}</h3>
+        <p class="uses"><span class="tag">Usa</span>{q.usa}</p>
+        <div class="code-wrap">
+          <span class="file">{q.arquivo}</span>
+          <pre class="code"><code set:html={hl(q.sql)} /></pre>
+        </div>
+        <div class="result">
+          <p class="tag">Resultado · {q.total_linhas} {q.total_linhas === 1 ? 'linha' : 'linhas'}{q.total_linhas > q.linhas.length ? ` (primeiras ${q.linhas.length})` : ''}</p>
+          <div class="table-wrap">
+            <table>
+              <thead><tr>{q.colunas.map((c, k) => <th scope="col" class:list={{ num: numCols(q)[k] }}>{label(c)}</th>)}</tr></thead>
+              <tbody>
+                {q.linhas.map(row => (
+                  <tr data-row>{row.map((v, k) => <td class:list={{ num: numCols(q)[k] }}>{fmt(v, q.colunas[k])}</td>)}</tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <p class="read"><span class="tag">Leitura</span>{q.leitura}</p>
+      </article>
+    ))}
+  </div>
+</div>
+<p class="note">
+  Modelo recriado em SQL (sintaxe MySQL 8) a partir dos mesmos CSVs do dashboard. Os resultados acima foram gerados rodando as consultas de verdade, e os números batem com o Power BI.
+  {repoUrl && <a class="accent" href={repoUrl} target="_blank" rel="noopener">Ver os arquivos no GitHub ↗</a>}
+</p>
+
+<style>
+  .sql { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 28px; align-items: start; }
+  .panels { min-width: 0; }
+  .tabs { position: sticky; top: 96px; display: flex; flex-direction: column; gap: 4px; }
+  .group { margin: 4px 0 8px 12px; }
+  .group.next { margin-top: 20px; color: #FFD68A; }
+  .tab {
+    display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 12px; border-radius: 10px; text-align: left;
+    font-size: 14px; color: var(--text-2); transition: background-color .2s ease, color .2s ease;
+  }
+  .tab .num { font-family: var(--mono); font-size: 11px; color: var(--text-2); }
+  .tab:hover { color: var(--text); background: rgba(255,255,255,.03); }
+  .tab[aria-selected="true"] { color: var(--text); background: rgba(76,201,240,.08); box-shadow: inset 2px 0 0 var(--accent); }
+  .tab[aria-selected="true"] .num { color: var(--accent); }
+
+  .panel { padding: clamp(20px, 3vw, 32px); border-radius: 20px; background: var(--surface); box-shadow: 0 0 0 1px var(--border); }
+  .level { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(76,201,240,.3); }
+  .level.study { color: #FFD68A; border-color: rgba(255,199,95,.35); }
+  .q { margin-top: 14px; font-size: clamp(1.2rem, 1.8vw, 1.5rem); font-weight: 600; letter-spacing: -0.02em; line-height: 1.3; }
+  .uses, .read { display: flex; gap: 12px; align-items: baseline; margin-top: 12px; font-size: 15px; color: var(--text-2); }
+  .uses .tag, .read .tag { flex: none; color: var(--accent); }
+  .code-wrap { position: relative; margin-top: 20px; }
+  .file { position: absolute; right: 14px; top: 10px; font-family: var(--mono); font-size: 11px; color: var(--text-2); }
+  .code { padding-top: 34px; max-height: 420px; overflow: auto; }
+  .code :global(.k) { color: var(--accent); }
+  .code :global(.f) { color: #C7B8FF; }
+  .code :global(.s) { color: #9BE3B8; }
+  .code :global(.n) { color: #FFD68A; }
+  .code :global(.c) { color: #5F6B80; }
+  .result { margin-top: 20px; }
+  .table-wrap { margin-top: 10px; overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { position: sticky; top: 0; text-align: left; font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: .03em; color: var(--text-2); background: #0A0E18; padding: 10px 12px; white-space: nowrap; }
+  td { padding: 9px 12px; border-top: 1px solid rgba(28,35,51,.7); white-space: nowrap; color: var(--text); }
+  th.num { text-align: right; }
+  td.num { text-align: right; font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  tbody tr:hover td { background: rgba(76,201,240,.04); }
+  .read { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .note { margin-top: 20px; font-size: 14px; color: var(--text-2); max-width: 70ch; }
+  .note a { margin-left: 6px; }
+
+  @media (max-width: 900px) {
+    .sql { grid-template-columns: minmax(0, 1fr); }
+    .tabs { position: static; flex-direction: row; overflow-x: auto; gap: 6px; padding-bottom: 4px; scrollbar-width: none; }
+    .group { display: none; }
+    .tab { flex: none; width: auto; border: 1px solid var(--border); border-radius: 999px; padding: 8px 14px; }
+    .tab[aria-selected="true"] { box-shadow: none; border-color: rgba(76,201,240,.5); }
+  }
+</style>
+
+<script>
+  import { gsap, reduced } from '../../scripts/motion';
+  const root = document.querySelector<HTMLElement>('[data-sql]');
+  if (root) {
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[data-tab]')];
+    const panels = [...root.querySelectorAll<HTMLElement>('[data-panel]')];
+    let current = 0;
+    function select(i: number, focus = false) {
+      if (i === current) return;
+      tabs[current].setAttribute('aria-selected', 'false');
+      tabs[current].tabIndex = -1;
+      panels[current].hidden = true;
+      current = i;
+      tabs[i].setAttribute('aria-selected', 'true');
+      tabs[i].tabIndex = 0;
+      if (focus) tabs[i].focus();
+      const p = panels[i];
+      p.hidden = false;
+      if (!reduced) {
+        gsap.fromTo(p, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' });
+        gsap.fromTo(p.querySelectorAll('[data-row]'), { opacity: 0 }, { opacity: 1, duration: 0.25, stagger: 0.025, delay: 0.1, ease: 'power1.out' });
+      }
+    }
+    tabs.forEach((t, i) => t.addEventListener('click', () => select(i)));
+    root.querySelector('[role="tablist"]')!.addEventListener('keydown', e => {
+      const k = (e as KeyboardEvent).key;
+      const d = k === 'ArrowDown' || k === 'ArrowRight' ? 1 : k === 'ArrowUp' || k === 'ArrowLeft' ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      select((current + d + tabs.length) % tabs.length, true);
+    });
+  }
+</script>

@@ -1,0 +1,84 @@
+---
+// Gráfico do insight redesenhado no site: volume, SLA e absenteísmo, mês a mês, no mesmo eixo.
+// As três linhas se desenham com o scroll e param em junho, onde a faixa de destaque aparece.
+import data from '../../data/central-atendimento.json';
+
+interface Props { lang?: 'pt' | 'en' }
+const { lang = 'pt' } = Astro.props;
+const loc = lang === 'pt' ? 'pt-BR' : 'en-US';
+const f0 = (n: number) => n.toLocaleString(loc);
+const f1 = (n: number, d = 1) => n.toLocaleString(loc, { minimumFractionDigits: d, maximumFractionDigits: d });
+
+const W = 1000, ROW = 128, GAP = 44, L = 8, R = 8;
+const peak = data.volume.indexOf(Math.max(...data.volume));
+const avg = data.total / 12;
+const x = (i: number) => L + (i * (W - L - R)) / 11;
+
+const rows = [
+  { key: 'vol', label: lang === 'pt' ? 'Volume de chamados' : 'Ticket volume', vals: data.volume, color: '#4CC9F0', ref: avg, refLabel: `${lang === 'pt' ? 'média' : 'avg'} ${f0(Math.round(avg))}`, fmt: (v: number) => f0(v) },
+  { key: 'sla', label: lang === 'pt' ? 'SLA cumprido (%)' : 'SLA met (%)', vals: data.sla, color: '#55E1A7', ref: data.slaAno, refLabel: `${lang === 'pt' ? 'ano' : 'year'} ${f1(data.slaAno, 1)}%`, fmt: (v: number) => `${f1(v)}%` },
+  { key: 'abs', label: lang === 'pt' ? 'Absenteísmo (%)' : 'Absenteeism (%)', vals: data.abs, color: '#FF6F91', ref: data.metaAbs, refLabel: `${lang === 'pt' ? 'meta' : 'target'} ${data.metaAbs}%`, fmt: (v: number) => `${f1(v, 2)}%` },
+].map((r, ri) => {
+  const top = ri * (ROW + GAP) + 28;
+  const lo = Math.min(...r.vals, r.ref), hi = Math.max(...r.vals, r.ref);
+  const pad = (hi - lo) * 0.15;
+  const y = (v: number) => top + ROW - ((v - (lo - pad)) / (hi - lo + pad * 2)) * ROW;
+  const d = r.vals.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  return { ...r, top, d, refY: y(r.ref), py: y(r.vals[peak]) };
+});
+const H = rows.length * (ROW + GAP) + 10;
+const months = lang === 'pt' ? data.meses : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+---
+<figure class="insight-chart" data-insight aria-label={lang === 'pt'
+  ? `Volume, SLA e absenteísmo por mês em 2025. Em junho: ${f0(data.volume[peak])} chamados, SLA ${f1(data.sla[peak])}% e absenteísmo ${f1(data.abs[peak], 2)}%.`
+  : `Volume, SLA and absenteeism per month in 2025. In June: ${f0(data.volume[peak])} tickets, SLA ${f1(data.sla[peak])}% and absenteeism ${f1(data.abs[peak], 2)}%.`}>
+  <svg viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
+    <rect class="band" data-band x={x(peak) - 26} y="0" width="52" height={H - 10} rx="10" />
+    {rows.map(r => (
+      <g>
+        <text class="lbl" x={L} y={r.top - 12}>{r.label}</text>
+        <line class="ref" x1={L} x2={W - R} y1={r.refY} y2={r.refY} />
+        <text class="ref-lbl" x={W - R} y={r.refY - 6} text-anchor="end">{r.refLabel}</text>
+        <path class="line" d={r.d} stroke={r.color} pathLength="1" data-line />
+        <circle class="pk" cx={x(peak)} cy={r.py} r="5" fill={r.color} data-pk />
+        <text class="pk-lbl" x={x(peak) + 12} y={r.py + (r.key === 'sla' ? 18 : -10)} fill={r.color} data-pk>{r.fmt(r.vals[peak])}</text>
+      </g>
+    ))}
+  </svg>
+  <div class="months" aria-hidden="true">{months.map((m, i) => <span class:list={{ peak: i === peak }}>{m}</span>)}</div>
+  <figcaption class="src tag">{lang === 'pt' ? 'Fonte: base fictícia do dashboard, gerada a partir dos CSVs' : 'Source: fictional dashboard dataset, generated from the CSVs'}</figcaption>
+</figure>
+
+<style>
+  .insight-chart { padding: clamp(20px, 3vw, 36px); border-radius: 20px; background: var(--surface); box-shadow: 0 0 0 1px var(--border); }
+  svg { width: 100%; height: auto; overflow: visible; }
+  .band { fill: rgba(76,201,240,.07); stroke: rgba(76,201,240,.35); stroke-dasharray: 3 4; }
+  .lbl { font-family: var(--mono); font-size: 13px; fill: var(--text-2); letter-spacing: .04em; text-transform: uppercase; }
+  .ref { stroke: rgba(237,241,247,.22); stroke-dasharray: 4 5; }
+  .ref-lbl { font-family: var(--mono); font-size: 12px; fill: var(--text-2); }
+  .line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 0; }
+  .pk { filter: drop-shadow(0 0 6px currentColor); }
+  .pk-lbl { font-family: var(--mono); font-size: 15px; font-weight: 500; }
+  .months { display: grid; grid-template-columns: repeat(12, 1fr); margin: 10px -2% 0; font-family: var(--mono); font-size: 11px; color: var(--text-2); text-align: center; }
+  .months .peak { color: var(--accent); }
+  .src { margin-top: 18px; }
+  @media (max-width: 620px) { .lbl, .ref-lbl { font-size: 18px; } .pk-lbl { font-size: 20px; } .months { font-size: 9px; } }
+</style>
+
+<script>
+  import { gsap, reduced } from '../../scripts/motion';
+  const fig = document.querySelector<HTMLElement>('[data-insight]');
+  if (fig && !reduced) {
+    const lines = fig.querySelectorAll('[data-line]');
+    const pks = fig.querySelectorAll('[data-pk]');
+    const band = fig.querySelector('[data-band]');
+    // As linhas se desenham até junho (6/12 do traço) com o scroll; o resto do ano completa em seguida.
+    gsap.set(lines, { strokeDashoffset: 1 });
+    gsap.set([pks, band], { opacity: 0 });
+    const tl = gsap.timeline({ scrollTrigger: { trigger: fig, start: 'top 75%', end: 'center 45%', scrub: 0.6 } });
+    tl.to(lines, { strokeDashoffset: 1 - 5 / 11, duration: 1, ease: 'none', stagger: 0.08 })
+      .to(band, { opacity: 1, duration: 0.25 })
+      .to(pks, { opacity: 1, duration: 0.25, stagger: 0.05 }, '<')
+      .to(lines, { strokeDashoffset: 0, duration: 0.6, ease: 'none' });
+  }
+</script>
