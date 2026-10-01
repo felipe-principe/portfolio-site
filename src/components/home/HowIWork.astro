@@ -25,7 +25,6 @@ const s = t(lang).how;
     </ol>
   </div>
 
-  <p class="badge" data-reveal><span class="dot" aria-hidden="true"></span>{s.badge}</p>
 </section>
 
 <style>
@@ -42,8 +41,6 @@ const s = t(lang).how;
   .step .chips { margin-top: 18px; }
   .step.is-ai { padding: 28px 24px; border-radius: 16px; background: linear-gradient(160deg, rgba(76,201,240,.08), rgba(129,104,222,.06)); box-shadow: 0 0 0 1px rgba(76,201,240,.25); }
   .step.is-ai::before { left: 24px; background: var(--accent); box-shadow: 0 0 12px var(--accent); }
-  .badge { display: inline-flex; align-items: center; gap: 10px; margin-top: 48px; font-family: var(--mono); font-size: 13px; color: var(--text); padding: 10px 16px; border-radius: 999px; border: 1px solid rgba(76,201,240,.3); }
-  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); }
 
   @media (max-width: 1000px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (max-width: 620px) {
