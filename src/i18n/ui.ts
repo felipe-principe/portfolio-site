@@ -8,7 +8,7 @@ export const links = {
   email: 'felipelmprincipe@gmail.com',
   linkedin: 'https://www.linkedin.com/in/felipe-principe-731b7116a/',
   github: 'https://github.com/felipe-principe',
-  cv: '/curriculo-felipe-principe.pdf', // [RASCUNHO] colocar o PDF atualizado em public/
+  cv: '/curriculo-felipe-principe.pdf',
 };
 
 export const ui = {

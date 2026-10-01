@@ -10,6 +10,7 @@ import InsightChart from '../../components/case/InsightChart.astro';
 import StarSchema from '../../components/case/StarSchema.astro';
 import ChapterNav from '../../components/case/ChapterNav.astro';
 import SqlSection from '../../components/case/SqlSection.astro';
+import Glossary from '../../components/case/Glossary.astro';
 
 export async function getStaticPaths() {
   const cases = await getCollection('cases', c => c.data.status === 'publicado');
@@ -61,6 +62,11 @@ const jsonLd = {
     <dl class="facts" data-reveal>
       {c.facts.map(f => <div><dt class="tag">{f.label}</dt><dd>{f.value}</dd></div>)}
     </dl>
+    <p class="gl-hint" data-reveal>
+      <span class="gl-hint-ex" aria-hidden="true">Aa</span>
+      Não é da área de atendimento? Termos como PE e nível de serviço aparecem sublinhados: passe o mouse para ver a explicação.
+      <button type="button" class="gl-hint-btn" data-open-glossario>Abrir glossário</button>
+    </p>
     <div class="ctas" data-reveal>
       {c.pbiUrl && <button class="btn btn-primary" type="button" data-open-pbi={c.pbiUrl}>Abrir dashboard interativo <span class="arrow">↗</span></button>}
       {c.repoUrl && <a class="btn btn-ghost" href={c.repoUrl} target="_blank" rel="noopener">Ver no GitHub (.pbip)</a>}
@@ -232,6 +238,7 @@ const jsonLd = {
 
   <PbiModal lang="pt" slot="after" />
   <ChapterNav slot="after" pbiUrl={c.pbiUrl} />
+  <Glossary slot="after" />
 </Base>
 
 <style>
@@ -243,6 +250,10 @@ const jsonLd = {
   .facts { display: flex; flex-wrap: wrap; gap: 16px 40px; margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border); }
   .facts dd { margin-top: 6px; font-weight: 500; }
   .ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 36px; }
+  .gl-hint { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 20px; font-size: 13.5px; color: var(--text-2); }
+  .gl-hint-ex { font-family: var(--mono); font-size: 11px; color: var(--accent); padding: 2px 7px; border-radius: 6px; border: 1px solid rgba(76,201,240,.35); }
+  .gl-hint-btn { color: var(--accent); font-size: 13.5px; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: rgba(76,201,240,.4); }
+  .gl-hint-btn:hover { text-decoration-color: var(--accent); }
   .cover { margin-top: clamp(48px, 6vw, 80px); }
   .cover :global(img) { width: 100%; height: auto; }
 

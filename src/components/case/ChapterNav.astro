@@ -16,6 +16,9 @@ const { pbiUrl } = Astro.props;
     <span class="chev" aria-hidden="true"></span>
     <span class="bar" aria-hidden="true"><i data-bar></i></span>
   </button>
+  <button class="gl-btn" type="button" data-open-glossario aria-label="Abrir glossário" title="Glossário de termos">
+    <span class="gl-ico" aria-hidden="true">Aa</span><span class="gl-txt">Glossário</span>
+  </button>
   {pbiUrl && (
     <button class="go-live" type="button" data-open-pbi={pbiUrl}>
       <span class="live" aria-hidden="true"></span><span class="full">Abrir dashboard</span><span class="short">Ao vivo</span>
@@ -33,6 +36,13 @@ const { pbiUrl } = Astro.props;
   .chap:global(.is-visible) { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
 
   .dock { display: flex; align-items: center; gap: 8px; }
+  .gl-btn {
+    display: inline-flex; align-items: center; gap: 8px; height: 48px; padding: 0 16px; border-radius: 999px; white-space: nowrap;
+    font-size: 14px; color: var(--text-2); background: rgba(14,19,32,.82); backdrop-filter: blur(14px) saturate(140%);
+    box-shadow: 0 0 0 1px var(--border), 0 20px 50px -20px rgba(0,0,0,.9); transition: color .2s ease, box-shadow .2s ease;
+  }
+  .gl-btn:hover { color: var(--text); box-shadow: 0 0 0 1px rgba(76,201,240,.45), 0 20px 50px -20px rgba(0,0,0,.9); }
+  .gl-ico { font-family: var(--mono); font-size: 11px; color: var(--accent); }
   .go-live {
     display: inline-flex; align-items: center; gap: 10px; height: 48px; padding: 0 20px; border-radius: 999px; white-space: nowrap;
     font-size: 14px; font-weight: 500; color: var(--bg); background: var(--accent);
@@ -85,6 +95,8 @@ const { pbiUrl } = Astro.props;
     .pill { gap: 8px; padding: 0 12px 0 14px; }
     .go-live { padding: 0 14px; }
     .go-live .full { display: none; }
+    .gl-btn { width: 48px; padding: 0; justify-content: center; }
+    .gl-txt { display: none; }
     .go-live .short { display: inline; }
   }
 </style>
