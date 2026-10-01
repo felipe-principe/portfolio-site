@@ -3,8 +3,8 @@ import { defineConfig } from 'astro/config';
 import mdx from '@astrojs/mdx';
 
 export default defineConfig({
-  // Trocar pelo domínio definitivo quando for registrado (usado em SEO e Open Graph).
-  site: 'https://felipeprincipe.com.br',
+  // Endereço público (SEO e Open Graph). Trocar se um dia houver domínio próprio.
+  site: 'https://felipe-principe.vercel.app',
   integrations: [mdx()],
   // CSS dentro do HTML: sem requisição bloqueando a primeira pintura.
   build: { inlineStylesheets: 'always' },
